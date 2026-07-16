@@ -67,8 +67,8 @@ target_link_options(saxs PRIVATE
 )
 
 target_include_directories(saxs PRIVATE
-    backend
-    backend/webgpu
+    include
+    include/webgpu
     ${CMAKE_CURRENT_SOURCE_DIR}/../saxs-profile-plugin/build/_deps/nlohmann_json-src/include
 
 )
