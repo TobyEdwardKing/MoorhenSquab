@@ -1,0 +1,68 @@
+# ==========================
+# Build outputs
+# ==========================
+
+build/
+dist/
+out/
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# Object files
+*.o
+*.obj
+*.a
+*.so
+*.dll
+*.dylib
+
+# Executables
+*.exe
+*.out
+
+# ==========================
+# WebAssembly build products
+# ==========================
+
+*.wasm
+*.mem
+
+# ==========================
+# Node
+# ==========================
+
+node_modules/
+
+# ==========================
+# Generated documentation
+# ==========================
+
+docs/html/
+docs/latex/
+
+# ==========================
+# Editor files
+# ==========================
+
+.vscode/
+.idea/
+
+# ==========================
+# OS files
+# ==========================
+
+.DS_Store
+Thumbs.db
+
+# ==========================
+# Debug / crash dumps
+# ==========================
+
+core
+core.*
+*.log

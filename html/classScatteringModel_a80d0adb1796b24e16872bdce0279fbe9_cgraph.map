@@ -1,0 +1,8 @@
+<map id="ScatteringModel::compute_amplitudes" name="ScatteringModel::compute_amplitudes">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,199,45"/>
+<area shape="rect" id="Node000002" href="$classFormFactorTable.html#a0f87be9aeda30e2c52e03ffe874858ba" title=" " alt="" coords="479,13,669,38"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="199,23,465,23,465,28,199,28"/>
+<area shape="rect" id="Node000003" href="$classHydrationShell.html#a3ba112aa7d9becf4cce871ebfe633376" title=" " alt="" coords="247,38,431,63"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="199,33,234,37,233,42,199,38"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="431,38,465,34,465,40,431,43"/>
+</map>

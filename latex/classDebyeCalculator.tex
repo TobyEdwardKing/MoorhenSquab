@@ -1,0 +1,138 @@
+\doxysection{Debye\+Calculator Class Reference}
+\hypertarget{classDebyeCalculator}{}\label{classDebyeCalculator}\index{DebyeCalculator@{DebyeCalculator}}
+
+
+{\ttfamily \#include $<$Debye\+Calculator.\+hpp$>$}
+
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{classDebyeCalculator_a97ab913731338691bb6f30ff85dab9dc}{compute\+\_\+curve}} (const std\+::vector$<$ \mbox{\hyperlink{structAtomData}{Atom\+Data}} $>$ \&atoms, const \mbox{\hyperlink{classFormFactorTable}{Form\+Factor\+Table}} \&form\+Factors, double q\+Min, double q\+Max, double q\+Step)
+\item 
+void \mbox{\hyperlink{classDebyeCalculator_af7dc3e8dda36be82cac2c0ea0a7f723d}{prepare\+\_\+buffers}} (const std\+::vector$<$ \mbox{\hyperlink{structAtomData}{Atom\+Data}} $>$ \&atoms, const \mbox{\hyperlink{classFormFactorTable}{Form\+Factor\+Table}} \&table, double q)
+\item 
+size\+\_\+t \mbox{\hyperlink{classDebyeCalculator_a4822921217eadf9f3f2e1d21ccf544df}{curve\+\_\+size}} () const
+\item 
+double \mbox{\hyperlink{classDebyeCalculator_af5544094bef3d46e1406f2ff44778c84}{q\+\_\+value}} (size\+\_\+t i) const
+\item 
+double \mbox{\hyperlink{classDebyeCalculator_abc33a43b53ae348ff990d5d5632f2574}{intensity\+\_\+value}} (size\+\_\+t i) const
+\item 
+std\+::vector$<$ float $>$ \mbox{\hyperlink{classDebyeCalculator_ac7c414d19570767f6cdae94028d28cd4}{get\+\_\+positions}} () const
+\item 
+std\+::vector$<$ float $>$ \mbox{\hyperlink{classDebyeCalculator_ab21c86a20edf00758e7c1a0d000b6883}{get\+\_\+form\+\_\+factors}} () const
+\item 
+size\+\_\+t \mbox{\hyperlink{classDebyeCalculator_adacd8b1da19a12add0614bf0aaa9387f}{atom\+\_\+count}} () const
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classDebyeCalculator_adacd8b1da19a12add0614bf0aaa9387f}\label{classDebyeCalculator_adacd8b1da19a12add0614bf0aaa9387f} 
+\index{DebyeCalculator@{DebyeCalculator}!atom\_count@{atom\_count}}
+\index{atom\_count@{atom\_count}!DebyeCalculator@{DebyeCalculator}}
+\doxysubsubsection{\texorpdfstring{atom\_count()}{atom\_count()}}
+{\footnotesize\ttfamily size\+\_\+t Debye\+Calculator\+::atom\+\_\+count (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\Hypertarget{classDebyeCalculator_a97ab913731338691bb6f30ff85dab9dc}\label{classDebyeCalculator_a97ab913731338691bb6f30ff85dab9dc} 
+\index{DebyeCalculator@{DebyeCalculator}!compute\_curve@{compute\_curve}}
+\index{compute\_curve@{compute\_curve}!DebyeCalculator@{DebyeCalculator}}
+\doxysubsubsection{\texorpdfstring{compute\_curve()}{compute\_curve()}}
+{\footnotesize\ttfamily void Debye\+Calculator\+::compute\+\_\+curve (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ \mbox{\hyperlink{structAtomData}{Atom\+Data}} $>$ \&}]{atoms,  }\item[{const \mbox{\hyperlink{classFormFactorTable}{Form\+Factor\+Table}} \&}]{form\+Factors,  }\item[{double}]{q\+Min,  }\item[{double}]{q\+Max,  }\item[{double}]{q\+Step }\end{DoxyParamCaption})}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classDebyeCalculator_a97ab913731338691bb6f30ff85dab9dc_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{classDebyeCalculator_a4822921217eadf9f3f2e1d21ccf544df}\label{classDebyeCalculator_a4822921217eadf9f3f2e1d21ccf544df} 
+\index{DebyeCalculator@{DebyeCalculator}!curve\_size@{curve\_size}}
+\index{curve\_size@{curve\_size}!DebyeCalculator@{DebyeCalculator}}
+\doxysubsubsection{\texorpdfstring{curve\_size()}{curve\_size()}}
+{\footnotesize\ttfamily size\+\_\+t Debye\+Calculator\+::curve\+\_\+size (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classDebyeCalculator_a4822921217eadf9f3f2e1d21ccf544df_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{classDebyeCalculator_ab21c86a20edf00758e7c1a0d000b6883}\label{classDebyeCalculator_ab21c86a20edf00758e7c1a0d000b6883} 
+\index{DebyeCalculator@{DebyeCalculator}!get\_form\_factors@{get\_form\_factors}}
+\index{get\_form\_factors@{get\_form\_factors}!DebyeCalculator@{DebyeCalculator}}
+\doxysubsubsection{\texorpdfstring{get\_form\_factors()}{get\_form\_factors()}}
+{\footnotesize\ttfamily std\+::vector$<$ float $>$ Debye\+Calculator\+::get\+\_\+form\+\_\+factors (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classDebyeCalculator_ab21c86a20edf00758e7c1a0d000b6883_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{classDebyeCalculator_ac7c414d19570767f6cdae94028d28cd4}\label{classDebyeCalculator_ac7c414d19570767f6cdae94028d28cd4} 
+\index{DebyeCalculator@{DebyeCalculator}!get\_positions@{get\_positions}}
+\index{get\_positions@{get\_positions}!DebyeCalculator@{DebyeCalculator}}
+\doxysubsubsection{\texorpdfstring{get\_positions()}{get\_positions()}}
+{\footnotesize\ttfamily std\+::vector$<$ float $>$ Debye\+Calculator\+::get\+\_\+positions (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classDebyeCalculator_ac7c414d19570767f6cdae94028d28cd4_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{classDebyeCalculator_abc33a43b53ae348ff990d5d5632f2574}\label{classDebyeCalculator_abc33a43b53ae348ff990d5d5632f2574} 
+\index{DebyeCalculator@{DebyeCalculator}!intensity\_value@{intensity\_value}}
+\index{intensity\_value@{intensity\_value}!DebyeCalculator@{DebyeCalculator}}
+\doxysubsubsection{\texorpdfstring{intensity\_value()}{intensity\_value()}}
+{\footnotesize\ttfamily double Debye\+Calculator\+::intensity\+\_\+value (\begin{DoxyParamCaption}\item[{size\+\_\+t}]{i }\end{DoxyParamCaption}) const}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classDebyeCalculator_abc33a43b53ae348ff990d5d5632f2574_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{classDebyeCalculator_af7dc3e8dda36be82cac2c0ea0a7f723d}\label{classDebyeCalculator_af7dc3e8dda36be82cac2c0ea0a7f723d} 
+\index{DebyeCalculator@{DebyeCalculator}!prepare\_buffers@{prepare\_buffers}}
+\index{prepare\_buffers@{prepare\_buffers}!DebyeCalculator@{DebyeCalculator}}
+\doxysubsubsection{\texorpdfstring{prepare\_buffers()}{prepare\_buffers()}}
+{\footnotesize\ttfamily void Debye\+Calculator\+::prepare\+\_\+buffers (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ \mbox{\hyperlink{structAtomData}{Atom\+Data}} $>$ \&}]{atoms,  }\item[{const \mbox{\hyperlink{classFormFactorTable}{Form\+Factor\+Table}} \&}]{table,  }\item[{double}]{q }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classDebyeCalculator_af7dc3e8dda36be82cac2c0ea0a7f723d_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classDebyeCalculator_af7dc3e8dda36be82cac2c0ea0a7f723d_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{classDebyeCalculator_af5544094bef3d46e1406f2ff44778c84}\label{classDebyeCalculator_af5544094bef3d46e1406f2ff44778c84} 
+\index{DebyeCalculator@{DebyeCalculator}!q\_value@{q\_value}}
+\index{q\_value@{q\_value}!DebyeCalculator@{DebyeCalculator}}
+\doxysubsubsection{\texorpdfstring{q\_value()}{q\_value()}}
+{\footnotesize\ttfamily double Debye\+Calculator\+::q\+\_\+value (\begin{DoxyParamCaption}\item[{size\+\_\+t}]{i }\end{DoxyParamCaption}) const}
+
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classDebyeCalculator_af5544094bef3d46e1406f2ff44778c84_icgraph}
+\end{center}
+\end{figure}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+backend/\mbox{\hyperlink{DebyeCalculator_8hpp}{Debye\+Calculator.\+hpp}}\item 
+src/\mbox{\hyperlink{DebyeCalculator_8cpp}{Debye\+Calculator.\+cpp}}\end{DoxyCompactItemize}

@@ -1,0 +1,52 @@
+\doxysection{scattering\+Model.\+hpp}
+\hypertarget{scatteringModel_8hpp_source}{}\label{scatteringModel_8hpp_source}\index{backend/scatteringModel.hpp@{backend/scatteringModel.hpp}}
+\mbox{\hyperlink{scatteringModel_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ SCATTERINGMODEL\_HPP}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ SCATTERINGMODEL\_HPP}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{atomExtractor_8hpp}{atomExtractor.hpp}}"{}}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{formFactor_8hpp}{formFactor.hpp}}"{}}}
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#include\ "{}HydrationShell.hpp"{}}}
+\DoxyCodeLine{00009\ }
+\DoxyCodeLine{00010\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structShellScatterer}{ShellScatterer}}}
+\DoxyCodeLine{00011\ \{}
+\DoxyCodeLine{00012\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{structShellScatterer_aca9f27272a45e5b5e6d3214d003136ed}{x}};}
+\DoxyCodeLine{00013\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{structShellScatterer_aa96e9a425eb21a123ea7dbf6900e57e7}{y}};}
+\DoxyCodeLine{00014\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{structShellScatterer_a86bdfc12a122e9fdc2cf90599409e64c}{z}};}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{structShellScatterer_a985c0d4eb550eb878d4a80769ef22686}{amplitude}};}
+\DoxyCodeLine{00017\ \};}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classScatteringModel}{ScatteringModel}}}
+\DoxyCodeLine{00020\ \{}
+\DoxyCodeLine{00021\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classScatteringModel_a80d0adb1796b24e16872bdce0279fbe9}{compute\_amplitudes}}(}
+\DoxyCodeLine{00024\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<AtomData>\&\ atoms,}
+\DoxyCodeLine{00025\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classFormFactorTable}{FormFactorTable}}\&\ table,}
+\DoxyCodeLine{00026\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ q}
+\DoxyCodeLine{00027\ \ \ \ \ );}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \ \ \ \ \textcolor{keyword}{const}\ std::vector<double>\&\ \mbox{\hyperlink{classScatteringModel_ac54b09d4bfb9e57edc649568b9478dc1}{amplitudes}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00030\ \ \ \ \ \textcolor{keyword}{const}\ std::vector<ShellScatterer>\&\ \mbox{\hyperlink{classScatteringModel_aa2c4e92e739fdc64efaa591e73fc953b}{shell\_scatterers}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00031\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{comment}{//\ Effective\ atomic\ amplitudes}}
+\DoxyCodeLine{00034\ \ \ \ \ std::vector<double>\ amplitudes\_;}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \ \ \ \ \textcolor{comment}{//\ Hydration\ shell\ scatterers}}
+\DoxyCodeLine{00037\ \ \ \ \ std::vector<ShellScatterer>\ shellScatterers\_;}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \ \ \ \ \textcolor{comment}{//\ Bulk\ solvent\ electron\ density}}
+\DoxyCodeLine{00040\ \ \ \ \ \textcolor{keywordtype}{double}\ solventDensity\_\ =\ 0.334;}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ \ \ \ \ \textcolor{comment}{//\ Excess\ shell\ density}}
+\DoxyCodeLine{00043\ \ \ \ \ \textcolor{keywordtype}{double}\ shellContrast\_\ =\ 0.03;}
+\DoxyCodeLine{00044\ \};}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

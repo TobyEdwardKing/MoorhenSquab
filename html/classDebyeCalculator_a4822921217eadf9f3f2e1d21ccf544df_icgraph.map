@@ -1,0 +1,10 @@
+<map id="DebyeCalculator::curve_size" name="DebyeCalculator::curve_size">
+<area shape="rect" id="Node000001" title=" " alt="" coords="449,31,656,56"/>
+<area shape="rect" id="Node000002" href="$main_8cpp.html#abe8e5ebcd623d94074eb67b1b33bf08f" title=" " alt="" coords="232,5,401,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="436,33,401,30,402,24,436,28"/>
+<area shape="rect" id="Node000004" href="$main_8cpp.html#ae6cbc23acf3e37cfe93df2b131cc02f7" title=" " alt="" coords="271,55,362,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="436,58,363,65,362,60,435,53"/>
+<area shape="rect" id="Node000003" href="$main_8cpp.html#a0e7a69acdc033b25fca6012157ef6615" title=" " alt="" coords="5,31,184,56"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="219,32,184,36,184,31,218,27"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="257,64,184,56,185,50,258,58"/>
+</map>

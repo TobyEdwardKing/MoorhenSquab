@@ -1,0 +1,64 @@
+\doxysection{form\+Factor.\+hpp}
+\hypertarget{formFactor_8hpp_source}{}\label{formFactor_8hpp_source}\index{backend/formFactor.hpp@{backend/formFactor.hpp}}
+\mbox{\hyperlink{formFactor_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ FORMFACTOR\_HPP}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ FORMFACTOR\_HPP}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#include\ <array>}}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#include\ <unordered\_map>}}
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#include\ <stdexcept>}}
+\DoxyCodeLine{00009\ }
+\DoxyCodeLine{00010\ }
+\DoxyCodeLine{00011\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structFormFactor}{FormFactor}}}
+\DoxyCodeLine{00012\ \{}
+\DoxyCodeLine{00013\ \ \ \ \ std::array<double,5>\ \mbox{\hyperlink{structFormFactor_a5cd37288ebb39541ad03cd87977d6a00}{a}}\{\};}
+\DoxyCodeLine{00014\ \ \ \ \ std::array<double,5>\ \mbox{\hyperlink{structFormFactor_a77811e87210af2616d443eb21c081f76}{b}}\{\};}
+\DoxyCodeLine{00015\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{structFormFactor_a6c07940855469310ec43fed690331459}{c}}\ =\ 0.0;}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00017\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{structFormFactor_affe731968f62fabe05fdf572bda16dea}{coherent\_scattering\_length}}\ =\ 0.0;}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structFormFactor_ad20ed87dc89e93f42d464784006cda5b}{atomic\_number}}\ =\ 0;}
+\DoxyCodeLine{00020\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{structFormFactor_aeebf3b76986691efaae87ab5fff82c74}{atomic\_radius}}\ =\ 0.0;}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \ \ \ \ \textcolor{comment}{//\ Excluded\ solvent\ volume\ (Å³)}}
+\DoxyCodeLine{00023\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{structFormFactor_addf98bf2a602be0d40aceec747ae36b0}{excluded\_volume}}\ =\ 0.0;}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{structFormFactor_a3a8cbab99956ec348c4e3bac0cf8efa5}{evaluate}}(\textcolor{keywordtype}{double}\ q)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{structFormFactor_ab757560d54371e2af0e86a8951131be7}{excluded\_amplitude}}(\textcolor{keywordtype}{double}\ q)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \};}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classFormFactorTable}{FormFactorTable}}}
+\DoxyCodeLine{00032\ \{}
+\DoxyCodeLine{00033\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00034\ }
+\DoxyCodeLine{00035\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classFormFactorTable_a1f23e8c629d3d0d1e5d97011987e67e8}{load\_from\_string}}(}
+\DoxyCodeLine{00036\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::string\&\ jsonContents);}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classFormFactorTable_a0f87be9aeda30e2c52e03ffe874858ba}{contains}}(}
+\DoxyCodeLine{00040\ \ \ \ \ \ \ \ \ uint32\_t\ index)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structFormFactor}{FormFactor}}\&\ \mbox{\hyperlink{classFormFactorTable_a0a6ab9034027d4b0f5ad03a1cd4a27af}{operator[]}}(}
+\DoxyCodeLine{00044\ \ \ \ \ \ \ \ \ uint32\_t\ index)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classFormFactorTable_a5f0220efbec39339ae74c70d53845f9d}{size}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \ \ \ \ std::string\ \mbox{\hyperlink{classFormFactorTable_a4403b457b9e73258ca5edcb651850948}{test\_lookup}}(}
+\DoxyCodeLine{00050\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<uint32\_t>\&\ atomicNumbers}
+\DoxyCodeLine{00051\ \ \ \ \ )\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00052\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \ \ \ \ std::vector<FormFactor>\ table\_;}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \};}
+\DoxyCodeLine{00057\ }
+\DoxyCodeLine{00058\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

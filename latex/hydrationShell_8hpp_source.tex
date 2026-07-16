@@ -1,0 +1,42 @@
+\doxysection{hydration\+Shell.\+hpp}
+\hypertarget{hydrationShell_8hpp_source}{}\label{hydrationShell_8hpp_source}\index{backend/hydrationShell.hpp@{backend/hydrationShell.hpp}}
+\mbox{\hyperlink{hydrationShell_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ HYDRATIONSHELL\_HPP}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ HYDRATIONSHELL\_HPP}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{atomExtractor_8hpp}{atomExtractor.hpp}}"{}}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{formFactor_8hpp}{formFactor.hpp}}"{}}}
+\DoxyCodeLine{00008\ }
+\DoxyCodeLine{00009\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structHydrationPoint}{HydrationPoint}}}
+\DoxyCodeLine{00010\ \{}
+\DoxyCodeLine{00011\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{structHydrationPoint_abb3c616f2f6bcc852c138ce4f4bd89a2}{x}};}
+\DoxyCodeLine{00012\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{structHydrationPoint_a57ce79375905619c2e235a09454d0924}{y}};}
+\DoxyCodeLine{00013\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{structHydrationPoint_a22316b901b103f84466fce3a1eec588f}{z}};}
+\DoxyCodeLine{00014\ \};}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classHydrationShell}{HydrationShell}}}
+\DoxyCodeLine{00017\ \{}
+\DoxyCodeLine{00018\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \ \ \ \ \textcolor{comment}{//\ Generate\ solvent-\/accessible\ hydration\ shell}}
+\DoxyCodeLine{00021\ \ \ \ \ std::vector<HydrationPoint>\ \mbox{\hyperlink{classHydrationShell_a3ba112aa7d9becf4cce871ebfe633376}{generate}}(}
+\DoxyCodeLine{00022\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<AtomData>\&\ atoms,}
+\DoxyCodeLine{00023\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classFormFactorTable}{FormFactorTable}}\&\ table}
+\DoxyCodeLine{00024\ \ \ \ \ )\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ WATER\_RADIUS\ =\ 1.4;}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \ \ \ \ \textcolor{comment}{//\ Candidate\ directions\ on\ a\ unit\ sphere}}
+\DoxyCodeLine{00031\ \ \ \ \ \textcolor{keyword}{static}\ std::vector<std::array<double,3>>\ directions;}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \};}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

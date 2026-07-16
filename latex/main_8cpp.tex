@@ -1,0 +1,302 @@
+\doxysection{src/main.cpp File Reference}
+\hypertarget{main_8cpp}{}\label{main_8cpp}\index{src/main.cpp@{src/main.cpp}}
+{\ttfamily \#include $<$emscripten/bind.\+h$>$}\newline
+{\ttfamily \#include "{}atom\+Extractor.\+hpp"{}}\newline
+{\ttfamily \#include "{}form\+Factor.\+hpp"{}}\newline
+{\ttfamily \#include "{}Application\+State.\+hpp"{}}\newline
+{\ttfamily \#include "{}Debye\+Calculator.\+hpp"{}}\newline
+{\ttfamily \#include $<$algorithm$>$}\newline
+{\ttfamily \#include $<$sstream$>$}\newline
+{\ttfamily \#include $<$iostream$>$}\newline
+Include dependency graph for main.\+cpp\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{main_8cpp__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+int \mbox{\hyperlink{main_8cpp_abc9aa2f76840ff304cc33ee29487eea6}{atom\+\_\+count}} (const std\+::string \&text, const std\+::string \&filename)
+\item 
+std\+::string \mbox{\hyperlink{main_8cpp_a92d068fdc1d6004e4eae8feadd80dd20}{atom\+\_\+summary}} (const std\+::string \&text, const std\+::string \&filename)
+\item 
+std\+::string \mbox{\hyperlink{main_8cpp_af727e5d6a8b92b1286cbf3ab6a929701}{form\+\_\+factor\+\_\+summary}} (const std\+::string \&text, const std\+::string \&filename, const std\+::string \&json\+Text)
+\item 
+std\+::string \mbox{\hyperlink{main_8cpp_a4051636863cb5f579ddd94376d2738eb}{form\+\_\+factor\+\_\+test}} (const std\+::string \&\mbox{\hyperlink{formFactor_8cpp_ab701e3ac61a85b337ec5c1abaad6742d}{json}}, const std\+::string \&contents, const std\+::string \&filename)
+\item 
+void \mbox{\hyperlink{main_8cpp_abe8e5ebcd623d94074eb67b1b33bf08f}{compute\+\_\+debye\+\_\+curve}} (const std\+::string \&\mbox{\hyperlink{formFactor_8cpp_ab701e3ac61a85b337ec5c1abaad6742d}{json}}, const std\+::string \&contents, const std\+::string \&filename, double q\+Min, double q\+Max, double q\+Step)
+\item 
+int \mbox{\hyperlink{main_8cpp_ae6cbc23acf3e37cfe93df2b131cc02f7}{curve\+\_\+size}} ()
+\item 
+double \mbox{\hyperlink{main_8cpp_a8df5dcea3ae1970507e96f0310c38f62}{curve\+\_\+q}} (int i)
+\item 
+double \mbox{\hyperlink{main_8cpp_abe16728b0e2b5e0bff3aa646603df6f1}{curve\+\_\+intensity}} (int i)
+\item 
+void \mbox{\hyperlink{main_8cpp_ae7cc4c6dbd3bd98fd7e6081abd427628}{prepare\+\_\+debye\+\_\+gpu}} (const std\+::string \&\mbox{\hyperlink{formFactor_8cpp_ab701e3ac61a85b337ec5c1abaad6742d}{json}}, const std\+::string \&contents, const std\+::string \&filename, double q)
+\item 
+std\+::vector$<$ float $>$ \mbox{\hyperlink{main_8cpp_ac98de3bc2194b0e3ab5ce7bd191cac30}{get\+\_\+positions}} ()
+\item 
+std\+::vector$<$ float $>$ \mbox{\hyperlink{main_8cpp_a1a231c4cde1aa6403e9d7dd51c355125}{get\+\_\+form\+\_\+factors}} ()
+\item 
+\mbox{\hyperlink{main_8cpp_a0e7a69acdc033b25fca6012157ef6615}{EMSCRIPTEN\+\_\+\+BINDINGS}} (saxs)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classApplicationState}{Application\+State}} \mbox{\hyperlink{main_8cpp_af20dbcc117b0d9464485d50e35e5e67f}{app}}
+\item 
+\mbox{\hyperlink{classDebyeCalculator}{Debye\+Calculator}} \mbox{\hyperlink{main_8cpp_acf10843244c8b6d7dd38a13e16a47301}{calculator}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Function Documentation}
+\Hypertarget{main_8cpp_abc9aa2f76840ff304cc33ee29487eea6}\label{main_8cpp_abc9aa2f76840ff304cc33ee29487eea6} 
+\index{main.cpp@{main.cpp}!atom\_count@{atom\_count}}
+\index{atom\_count@{atom\_count}!main.cpp@{main.cpp}}
+\doxysubsubsection{\texorpdfstring{atom\_count()}{atom\_count()}}
+{\footnotesize\ttfamily int atom\+\_\+count (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{text,  }\item[{const std\+::string \&}]{filename }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=318pt]{main_8cpp_abc9aa2f76840ff304cc33ee29487eea6_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=324pt]{main_8cpp_abc9aa2f76840ff304cc33ee29487eea6_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{main_8cpp_a92d068fdc1d6004e4eae8feadd80dd20}\label{main_8cpp_a92d068fdc1d6004e4eae8feadd80dd20} 
+\index{main.cpp@{main.cpp}!atom\_summary@{atom\_summary}}
+\index{atom\_summary@{atom\_summary}!main.cpp@{main.cpp}}
+\doxysubsubsection{\texorpdfstring{atom\_summary()}{atom\_summary()}}
+{\footnotesize\ttfamily std\+::string atom\+\_\+summary (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{text,  }\item[{const std\+::string \&}]{filename }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{main_8cpp_a92d068fdc1d6004e4eae8feadd80dd20_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=344pt]{main_8cpp_a92d068fdc1d6004e4eae8feadd80dd20_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{main_8cpp_abe8e5ebcd623d94074eb67b1b33bf08f}\label{main_8cpp_abe8e5ebcd623d94074eb67b1b33bf08f} 
+\index{main.cpp@{main.cpp}!compute\_debye\_curve@{compute\_debye\_curve}}
+\index{compute\_debye\_curve@{compute\_debye\_curve}!main.cpp@{main.cpp}}
+\doxysubsubsection{\texorpdfstring{compute\_debye\_curve()}{compute\_debye\_curve()}}
+{\footnotesize\ttfamily void compute\+\_\+debye\+\_\+curve (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{json,  }\item[{const std\+::string \&}]{contents,  }\item[{const std\+::string \&}]{filename,  }\item[{double}]{q\+Min,  }\item[{double}]{q\+Max,  }\item[{double}]{q\+Step }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{main_8cpp_abe8e5ebcd623d94074eb67b1b33bf08f_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{main_8cpp_abe8e5ebcd623d94074eb67b1b33bf08f_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{main_8cpp_abe16728b0e2b5e0bff3aa646603df6f1}\label{main_8cpp_abe16728b0e2b5e0bff3aa646603df6f1} 
+\index{main.cpp@{main.cpp}!curve\_intensity@{curve\_intensity}}
+\index{curve\_intensity@{curve\_intensity}!main.cpp@{main.cpp}}
+\doxysubsubsection{\texorpdfstring{curve\_intensity()}{curve\_intensity()}}
+{\footnotesize\ttfamily double curve\+\_\+intensity (\begin{DoxyParamCaption}\item[{int}]{i }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{main_8cpp_abe16728b0e2b5e0bff3aa646603df6f1_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=342pt]{main_8cpp_abe16728b0e2b5e0bff3aa646603df6f1_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{main_8cpp_a8df5dcea3ae1970507e96f0310c38f62}\label{main_8cpp_a8df5dcea3ae1970507e96f0310c38f62} 
+\index{main.cpp@{main.cpp}!curve\_q@{curve\_q}}
+\index{curve\_q@{curve\_q}!main.cpp@{main.cpp}}
+\doxysubsubsection{\texorpdfstring{curve\_q()}{curve\_q()}}
+{\footnotesize\ttfamily double curve\+\_\+q (\begin{DoxyParamCaption}\item[{int}]{i }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=281pt]{main_8cpp_a8df5dcea3ae1970507e96f0310c38f62_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=305pt]{main_8cpp_a8df5dcea3ae1970507e96f0310c38f62_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{main_8cpp_ae6cbc23acf3e37cfe93df2b131cc02f7}\label{main_8cpp_ae6cbc23acf3e37cfe93df2b131cc02f7} 
+\index{main.cpp@{main.cpp}!curve\_size@{curve\_size}}
+\index{curve\_size@{curve\_size}!main.cpp@{main.cpp}}
+\doxysubsubsection{\texorpdfstring{curve\_size()}{curve\_size()}}
+{\footnotesize\ttfamily int curve\+\_\+size (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=339pt]{main_8cpp_ae6cbc23acf3e37cfe93df2b131cc02f7_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=318pt]{main_8cpp_ae6cbc23acf3e37cfe93df2b131cc02f7_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{main_8cpp_a0e7a69acdc033b25fca6012157ef6615}\label{main_8cpp_a0e7a69acdc033b25fca6012157ef6615} 
+\index{main.cpp@{main.cpp}!EMSCRIPTEN\_BINDINGS@{EMSCRIPTEN\_BINDINGS}}
+\index{EMSCRIPTEN\_BINDINGS@{EMSCRIPTEN\_BINDINGS}!main.cpp@{main.cpp}}
+\doxysubsubsection{\texorpdfstring{EMSCRIPTEN\_BINDINGS()}{EMSCRIPTEN\_BINDINGS()}}
+{\footnotesize\ttfamily EMSCRIPTEN\+\_\+\+BINDINGS (\begin{DoxyParamCaption}\item[{saxs}]{ }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{main_8cpp_a0e7a69acdc033b25fca6012157ef6615_cgraph}
+\end{center}
+\end{figure}
+\Hypertarget{main_8cpp_af727e5d6a8b92b1286cbf3ab6a929701}\label{main_8cpp_af727e5d6a8b92b1286cbf3ab6a929701} 
+\index{main.cpp@{main.cpp}!form\_factor\_summary@{form\_factor\_summary}}
+\index{form\_factor\_summary@{form\_factor\_summary}!main.cpp@{main.cpp}}
+\doxysubsubsection{\texorpdfstring{form\_factor\_summary()}{form\_factor\_summary()}}
+{\footnotesize\ttfamily std\+::string form\+\_\+factor\+\_\+summary (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{text,  }\item[{const std\+::string \&}]{filename,  }\item[{const std\+::string \&}]{json\+Text }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{main_8cpp_af727e5d6a8b92b1286cbf3ab6a929701_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{main_8cpp_af727e5d6a8b92b1286cbf3ab6a929701_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{main_8cpp_a4051636863cb5f579ddd94376d2738eb}\label{main_8cpp_a4051636863cb5f579ddd94376d2738eb} 
+\index{main.cpp@{main.cpp}!form\_factor\_test@{form\_factor\_test}}
+\index{form\_factor\_test@{form\_factor\_test}!main.cpp@{main.cpp}}
+\doxysubsubsection{\texorpdfstring{form\_factor\_test()}{form\_factor\_test()}}
+{\footnotesize\ttfamily std\+::string form\+\_\+factor\+\_\+test (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{json,  }\item[{const std\+::string \&}]{contents,  }\item[{const std\+::string \&}]{filename }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{main_8cpp_a4051636863cb5f579ddd94376d2738eb_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=348pt]{main_8cpp_a4051636863cb5f579ddd94376d2738eb_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{main_8cpp_a1a231c4cde1aa6403e9d7dd51c355125}\label{main_8cpp_a1a231c4cde1aa6403e9d7dd51c355125} 
+\index{main.cpp@{main.cpp}!get\_form\_factors@{get\_form\_factors}}
+\index{get\_form\_factors@{get\_form\_factors}!main.cpp@{main.cpp}}
+\doxysubsubsection{\texorpdfstring{get\_form\_factors()}{get\_form\_factors()}}
+{\footnotesize\ttfamily std\+::vector$<$ float $>$ get\+\_\+form\+\_\+factors (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=335pt]{main_8cpp_a1a231c4cde1aa6403e9d7dd51c355125_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{main_8cpp_a1a231c4cde1aa6403e9d7dd51c355125_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{main_8cpp_ac98de3bc2194b0e3ab5ce7bd191cac30}\label{main_8cpp_ac98de3bc2194b0e3ab5ce7bd191cac30} 
+\index{main.cpp@{main.cpp}!get\_positions@{get\_positions}}
+\index{get\_positions@{get\_positions}!main.cpp@{main.cpp}}
+\doxysubsubsection{\texorpdfstring{get\_positions()}{get\_positions()}}
+{\footnotesize\ttfamily std\+::vector$<$ float $>$ get\+\_\+positions (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=317pt]{main_8cpp_ac98de3bc2194b0e3ab5ce7bd191cac30_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=332pt]{main_8cpp_ac98de3bc2194b0e3ab5ce7bd191cac30_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{main_8cpp_ae7cc4c6dbd3bd98fd7e6081abd427628}\label{main_8cpp_ae7cc4c6dbd3bd98fd7e6081abd427628} 
+\index{main.cpp@{main.cpp}!prepare\_debye\_gpu@{prepare\_debye\_gpu}}
+\index{prepare\_debye\_gpu@{prepare\_debye\_gpu}!main.cpp@{main.cpp}}
+\doxysubsubsection{\texorpdfstring{prepare\_debye\_gpu()}{prepare\_debye\_gpu()}}
+{\footnotesize\ttfamily void prepare\+\_\+debye\+\_\+gpu (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{json,  }\item[{const std\+::string \&}]{contents,  }\item[{const std\+::string \&}]{filename,  }\item[{double}]{q }\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{main_8cpp_ae7cc4c6dbd3bd98fd7e6081abd427628_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{main_8cpp_ae7cc4c6dbd3bd98fd7e6081abd427628_icgraph}
+\end{center}
+\end{figure}
+
+
+\doxysubsection{Variable Documentation}
+\Hypertarget{main_8cpp_af20dbcc117b0d9464485d50e35e5e67f}\label{main_8cpp_af20dbcc117b0d9464485d50e35e5e67f} 
+\index{main.cpp@{main.cpp}!app@{app}}
+\index{app@{app}!main.cpp@{main.cpp}}
+\doxysubsubsection{\texorpdfstring{app}{app}}
+{\footnotesize\ttfamily \mbox{\hyperlink{classApplicationState}{Application\+State}} app}
+
+\Hypertarget{main_8cpp_acf10843244c8b6d7dd38a13e16a47301}\label{main_8cpp_acf10843244c8b6d7dd38a13e16a47301} 
+\index{main.cpp@{main.cpp}!calculator@{calculator}}
+\index{calculator@{calculator}!main.cpp@{main.cpp}}
+\doxysubsubsection{\texorpdfstring{calculator}{calculator}}
+{\footnotesize\ttfamily \mbox{\hyperlink{classDebyeCalculator}{Debye\+Calculator}} calculator}
+

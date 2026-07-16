@@ -1,0 +1,98 @@
+\doxysection{Debye\+Pipeline.\+hpp}
+\hypertarget{DebyePipeline_8hpp_source}{}\label{DebyePipeline_8hpp_source}\index{backend/DebyePipeline.hpp@{backend/DebyePipeline.hpp}}
+\mbox{\hyperlink{DebyePipeline_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ DEBYEPIPELINE\_HPP}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ DEBYEPIPELINE\_HPP}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#include\ <webgpu/webgpu\_cpp.h>}}
+\DoxyCodeLine{00006\ }
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{GPUContext_8hpp}{GPUContext.hpp}}"{}}}
+\DoxyCodeLine{00008\ }
+\DoxyCodeLine{00009\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structAtomData}{AtomData}}}
+\DoxyCodeLine{00010\ \{}
+\DoxyCodeLine{00011\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{structAtomData_aabbf024675ce0feef8a7a528a871caf1}{x}};}
+\DoxyCodeLine{00012\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{structAtomData_ad8d96f54eae103e3a01e7e6d25d652de}{y}};}
+\DoxyCodeLine{00013\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{structAtomData_a6d615148f82fed6f71c6a4be1112dc75}{z}};}
+\DoxyCodeLine{00014\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structAtomData_aae8312ae30f977268a4ce1590a25011b}{Z}};}
+\DoxyCodeLine{00015\ \};}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00017\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classDebyePipeline}{DebyePipeline}}}
+\DoxyCodeLine{00018\ \{}
+\DoxyCodeLine{00019\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00020\ \ \ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classDebyePipeline}{DebyePipeline}}(\mbox{\hyperlink{classGPUContext}{GPUContext}}\&\ context);}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classDebyePipeline_ab48d71ffd406ba29d659f00e56b3137a}{initialise}}();}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classDebyePipeline_a4df85cd359bf37260dcd72af66cbdac3}{set\_data}}(\textcolor{keyword}{const}\ std::vector<AtomData>\&\ atoms,}
+\DoxyCodeLine{00025\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<float>\&\ formFactors,}
+\DoxyCodeLine{00026\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<float>\&\ qValues);}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classDebyePipeline_a0ff4767a8d1a1f3f318cbb16687df9c2}{compute}}();}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \ \ \ \ \textcolor{keyword}{const}\ std::vector<float>\&\ \mbox{\hyperlink{classDebyePipeline_a2862346b28065f9fcd630ada3db382f8}{result}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00033\ \ \ \ \ \mbox{\hyperlink{classGPUContext}{GPUContext}}\&\ context\_;}
+\DoxyCodeLine{00034\ }
+\DoxyCodeLine{00035\ \ \ \ \ \textcolor{comment}{//\ Pipeline}}
+\DoxyCodeLine{00036\ \ \ \ \ wgpu::ShaderModule\ shader\_;}
+\DoxyCodeLine{00037\ \ \ \ \ wgpu::ComputePipeline\ pipeline\_;}
+\DoxyCodeLine{00038\ \ \ \ \ wgpu::BindGroup\ bind\_group\_;}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \ \ \ \ \textcolor{comment}{//\ Buffers}}
+\DoxyCodeLine{00041\ \ \ \ \ wgpu::Buffer\ atom\_buffer\_;}
+\DoxyCodeLine{00042\ \ \ \ \ wgpu::Buffer\ form\_factor\_buffer\_;}
+\DoxyCodeLine{00043\ \ \ \ \ wgpu::Buffer\ q\_buffer\_;}
+\DoxyCodeLine{00044\ \ \ \ \ wgpu::Buffer\ intensity\_buffer\_;}
+\DoxyCodeLine{00045\ \ \ \ \ wgpu::Buffer\ staging\_buffer\_;}
+\DoxyCodeLine{00046\ \ \ \ \ wgpu::Buffer\ uniform\_buffer\_;}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \ \ \ \ \textcolor{comment}{//\ CPU\ copy}}
+\DoxyCodeLine{00049\ \ \ \ \ std::vector<float>\ host\_result\_;}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \ \ \ \ uint32\_t\ atom\_count\_\ =\ 0;}
+\DoxyCodeLine{00052\ \ \ \ \ uint32\_t\ q\_count\_\ =\ 0;}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \ \ \ \ \textcolor{keywordtype}{void}\ create\_buffers();}
+\DoxyCodeLine{00055\ \ \ \ \ \textcolor{keywordtype}{void}\ create\_pipeline();}
+\DoxyCodeLine{00056\ \};}
+\DoxyCodeLine{00057\ }
+\DoxyCodeLine{00058\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ \#ifndef\ DEBYEPIPELINE\_HPP}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ \#define\ DEBYEPIPELINE\_HPP}}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ \#include\ <vector>}}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ \#include\ "{}atomExtractor.hpp"{}}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ \#include\ "{}formFactor.hpp"{}}}
+\DoxyCodeLine{00067\ }
+\DoxyCodeLine{00068\ \textcolor{comment}{//\ class\ GPUContext;\ //\ forward\ declare}}
+\DoxyCodeLine{00069\ }
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ class\ DebyePipeline}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ \{}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//\ public:}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ \ \ \ \ DebyePipeline(GPUContext\&\ gpu);}}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ \ \ \ \ void\ initialise();}}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ \ \ \ \ void\ set\_data(}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ const\ std::vector<AtomData>\&\ atoms,}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ const\ FormFactorTable\&\ table,}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ const\ std::vector<float>\&\ qValues);}}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ \ \ \ \ void\ compute();}}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ \ \ \ \ std::vector<float>\ result()\ const;}}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00086\ \textcolor{comment}{//\ private:}}
+\DoxyCodeLine{00087\ \textcolor{comment}{//\ \ \ \ \ GPUContext\&\ gpu\_;}}
+\DoxyCodeLine{00088\ }
+\DoxyCodeLine{00089\ \textcolor{comment}{//\ \ \ \ \ std::vector<float>\ output\_;}}
+\DoxyCodeLine{00090\ \textcolor{comment}{//\ \};}}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \textcolor{comment}{//\ \#endif}}
+
+\end{DoxyCode}

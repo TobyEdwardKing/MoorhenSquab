@@ -1,0 +1,54 @@
+\doxysection{GPUContext.\+hpp}
+\hypertarget{GPUContext_8hpp_source}{}\label{GPUContext_8hpp_source}\index{frontend/src/webgpu/GPUContext.hpp@{frontend/src/webgpu/GPUContext.hpp}}
+\mbox{\hyperlink{GPUContext_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ GPUCONTEXT\_HPP}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ GPUCONTEXT\_HPP}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <webgpu/webgpu\_cpp.h>}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ TEMP\ STUB\ (no\ WebGPU\ yet)}}
+\DoxyCodeLine{00006\ }
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ class\ GPUContext}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ \{}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ public:}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ \ \ \ \ GPUContext();}}
+\DoxyCodeLine{00011\ }
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ \ \ \ \ bool\ initialise();}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ \ \ \ \ bool\ is\_valid()\ const;}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ private:}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ \ \ \ \ bool\ initialised\_\ =\ false;}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ \};}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ \#endif}}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classGPUContext}{GPUContext}}}
+\DoxyCodeLine{00023\ \{}
+\DoxyCodeLine{00024\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \ \ \ \ \mbox{\hyperlink{classGPUContext_ac1f82f78d4b0007753e81ff98ca8526f}{GPUContext}}();}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classGPUContext_aa97bc55e81859f6dc13aeb583ee06d6a}{initialise}}();}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classGPUContext_a5c70749d80ccf21a664269900dcb6355}{is\_valid}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \ \ \ \ \textcolor{keyword}{const}\ wgpu::Device\&\ \mbox{\hyperlink{classGPUContext_a8fe5f1d26f61ab8c7cdd24e266fe8ee1}{device}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{keyword}{const}\ wgpu::Queue\&\ \mbox{\hyperlink{classGPUContext_ac8856dff192f4e0c87b0d40c2729e97e}{queue}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00034\ }
+\DoxyCodeLine{00035\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00036\ }
+\DoxyCodeLine{00037\ \ \ \ \ wgpu::Instance\ instance\_;}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \ \ \ \ wgpu::Adapter\ adapter\_;}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \ \ \ \ wgpu::Device\ device\_;}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \ \ \ \ wgpu::Queue\ queue\_;}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \ \ \ \ \textcolor{keywordtype}{bool}\ initialised\_\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00046\ \};}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

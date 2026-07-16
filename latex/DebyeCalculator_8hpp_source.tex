@@ -1,0 +1,103 @@
+\doxysection{Debye\+Calculator.\+hpp}
+\hypertarget{DebyeCalculator_8hpp_source}{}\label{DebyeCalculator_8hpp_source}\index{backend/DebyeCalculator.hpp@{backend/DebyeCalculator.hpp}}
+\mbox{\hyperlink{DebyeCalculator_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00002\ }
+\DoxyCodeLine{00003\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00004\ }
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{atomExtractor_8hpp}{atomExtractor.hpp}}"{}}}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{formFactor_8hpp}{formFactor.hpp}}"{}}}
+\DoxyCodeLine{00007\ }
+\DoxyCodeLine{00008\ }
+\DoxyCodeLine{00009\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classDebyeCalculator}{DebyeCalculator}}}
+\DoxyCodeLine{00010\ \{}
+\DoxyCodeLine{00011\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \ \ \ \ \textcolor{comment}{//\ Generate\ CPU\ SAXS\ curve}}
+\DoxyCodeLine{00014\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classDebyeCalculator_a97ab913731338691bb6f30ff85dab9dc}{compute\_curve}}(}
+\DoxyCodeLine{00015\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<AtomData>\&\ atoms,}
+\DoxyCodeLine{00016\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classFormFactorTable}{FormFactorTable}}\&\ formFactors,}
+\DoxyCodeLine{00017\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ qMin,}
+\DoxyCodeLine{00018\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ qMax,}
+\DoxyCodeLine{00019\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ qStep);}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \ \ \ \ \textcolor{comment}{//\ Prepare\ contiguous\ arrays\ for\ GPU\ upload.}}
+\DoxyCodeLine{00023\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00024\ \ \ \ \ \textcolor{comment}{//\ positions:}}
+\DoxyCodeLine{00025\ \ \ \ \ \textcolor{comment}{//\ [}}
+\DoxyCodeLine{00026\ \ \ \ \ \textcolor{comment}{//\ \ \ x0,y0,z0,}}
+\DoxyCodeLine{00027\ \ \ \ \ \textcolor{comment}{//\ \ \ x1,y1,z1,}}
+\DoxyCodeLine{00028\ \ \ \ \ \textcolor{comment}{//\ \ \ ...}}
+\DoxyCodeLine{00029\ \ \ \ \ \textcolor{comment}{//\ ]}}
+\DoxyCodeLine{00030\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00031\ \ \ \ \ \textcolor{comment}{//\ formFactors:}}
+\DoxyCodeLine{00032\ \ \ \ \ \textcolor{comment}{//\ [}}
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{comment}{//\ \ \ f0,}}
+\DoxyCodeLine{00034\ \ \ \ \ \textcolor{comment}{//\ \ \ f1,}}
+\DoxyCodeLine{00035\ \ \ \ \ \textcolor{comment}{//\ \ \ ...}}
+\DoxyCodeLine{00036\ \ \ \ \ \textcolor{comment}{//\ ]}}
+\DoxyCodeLine{00037\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classDebyeCalculator_af7dc3e8dda36be82cac2c0ea0a7f723d}{prepare\_buffers}}(}
+\DoxyCodeLine{00038\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<AtomData>\&\ atoms,}
+\DoxyCodeLine{00039\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classFormFactorTable}{FormFactorTable}}\&\ table,}
+\DoxyCodeLine{00040\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ q);}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \ \ \ \ \textcolor{comment}{//\ CPU\ curve\ access}}
+\DoxyCodeLine{00044\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classDebyeCalculator_a4822921217eadf9f3f2e1d21ccf544df}{curve\_size}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classDebyeCalculator_af5544094bef3d46e1406f2ff44778c84}{q\_value}}(\textcolor{keywordtype}{size\_t}\ i)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classDebyeCalculator_abc33a43b53ae348ff990d5d5632f2574}{intensity\_value}}(\textcolor{keywordtype}{size\_t}\ i)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \ \ \ \ \textcolor{comment}{//\ WebGPU\ data\ export.}}
+\DoxyCodeLine{00052\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00053\ \ \ \ \ \textcolor{comment}{//\ These\ return\ copies\ that\ Emscripten\ can\ transfer}}
+\DoxyCodeLine{00054\ \ \ \ \ \textcolor{comment}{//\ safely\ into\ JavaScript.}}
+\DoxyCodeLine{00055\ \ \ \ \ std::vector<float>\ \mbox{\hyperlink{classDebyeCalculator_ac7c414d19570767f6cdae94028d28cd4}{get\_positions}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \ \ \ \ std::vector<float>\ \mbox{\hyperlink{classDebyeCalculator_ab21c86a20edf00758e7c1a0d000b6883}{get\_form\_factors}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00060\ \ \ \ \ \textcolor{comment}{//\ Number\ of\ atoms\ represented\ in\ the\ GPU\ buffers}}
+\DoxyCodeLine{00061\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classDebyeCalculator_adacd8b1da19a12add0614bf0aaa9387f}{atom\_count}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00064\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \ \ \ \ \textcolor{comment}{//\ CPU-\/generated\ SAXS\ curve}}
+\DoxyCodeLine{00067\ \ \ \ \ std::vector<double>\ qValues;}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \ \ \ \ std::vector<double>\ intensities;}
+\DoxyCodeLine{00070\ }
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{comment}{//\ GPU\ upload\ buffers}}
+\DoxyCodeLine{00073\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00074\ \ \ \ \ \textcolor{comment}{//\ positions:}}
+\DoxyCodeLine{00075\ \ \ \ \ \textcolor{comment}{//\ [}}
+\DoxyCodeLine{00076\ \ \ \ \ \textcolor{comment}{//\ \ \ x0,y0,z0,}}
+\DoxyCodeLine{00077\ \ \ \ \ \textcolor{comment}{//\ \ \ x1,y1,z1,}}
+\DoxyCodeLine{00078\ \ \ \ \ \textcolor{comment}{//\ \ \ ...}}
+\DoxyCodeLine{00079\ \ \ \ \ \textcolor{comment}{//\ ]}}
+\DoxyCodeLine{00080\ \ \ \ \ std::vector<float>\ positions;}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \ \ \ \ \textcolor{comment}{//\ form\ factors:}}
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{comment}{//\ [}}
+\DoxyCodeLine{00085\ \ \ \ \ \textcolor{comment}{//\ \ \ f0,}}
+\DoxyCodeLine{00086\ \ \ \ \ \textcolor{comment}{//\ \ \ f1,}}
+\DoxyCodeLine{00087\ \ \ \ \ \textcolor{comment}{//\ \ \ ...}}
+\DoxyCodeLine{00088\ \ \ \ \ \textcolor{comment}{//\ ]}}
+\DoxyCodeLine{00089\ \ \ \ \ std::vector<float>\ formFactors;}
+\DoxyCodeLine{00090\ }
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \ \ \ \ \textcolor{comment}{//\ Single-\/q\ Debye\ calculation}}
+\DoxyCodeLine{00093\ \ \ \ \ \textcolor{keywordtype}{double}\ calculate\_point(}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<AtomData>\&\ atoms,}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classFormFactorTable}{FormFactorTable}}\&\ formFactors,}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ q)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00097\ \};}
+
+\end{DoxyCode}

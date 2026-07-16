@@ -1,0 +1,37 @@
+\doxysection{atom\+Extractor.\+hpp}
+\hypertarget{atomExtractor_8hpp_source}{}\label{atomExtractor_8hpp_source}\index{backend/atomExtractor.hpp@{backend/atomExtractor.hpp}}
+\mbox{\hyperlink{atomExtractor_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ ATOMEXTRACTOR\_HPP}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ ATOMEXTRACTOR\_HPP}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00007\ }
+\DoxyCodeLine{00008\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structAtomData}{AtomData}}}
+\DoxyCodeLine{00009\ \{}
+\DoxyCodeLine{00010\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{structAtomData_aabbf024675ce0feef8a7a528a871caf1}{x}};}
+\DoxyCodeLine{00011\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{structAtomData_ad8d96f54eae103e3a01e7e6d25d652de}{y}};}
+\DoxyCodeLine{00012\ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{structAtomData_a6d615148f82fed6f71c6a4be1112dc75}{z}};}
+\DoxyCodeLine{00013\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structAtomData_aae8312ae30f977268a4ce1590a25011b}{Z}};}
+\DoxyCodeLine{00014\ \};}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classAtomExtractor}{AtomExtractor}}}
+\DoxyCodeLine{00017\ \{}
+\DoxyCodeLine{00018\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \ \ \ \ \textcolor{keyword}{static}\ std::vector<AtomData>}
+\DoxyCodeLine{00021\ \ \ \ \ \mbox{\hyperlink{classAtomExtractor_a5d62b39747a12eaac9845393e933f0f3}{extract\_atoms\_from\_string}}(}
+\DoxyCodeLine{00022\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::string\&\ contents,}
+\DoxyCodeLine{00023\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::string\&\ filename);}
+\DoxyCodeLine{00024\ \};}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ Free\ function\ declaration}}
+\DoxyCodeLine{00027\ std::string\ \mbox{\hyperlink{atomExtractor_8hpp_a30f836b4c23566a426539694aa8216a7}{atom\_summary\_from\_string}}(}
+\DoxyCodeLine{00028\ \ \ \ \ \textcolor{keyword}{const}\ std::string\&\ contents,}
+\DoxyCodeLine{00029\ \ \ \ \ \textcolor{keyword}{const}\ std::string\&\ filename);}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}
