@@ -5,7 +5,7 @@
 
 #include "atomExtractor.hpp"
 #include "formFactor.hpp"
-#include "HydrationShell.hpp"
+#include "hydrationShell.hpp"
 
 struct ShellScatterer
 {

@@ -1,4 +1,4 @@
-#include "HydrationShell.hpp"
+#include "hydrationShell.hpp"
 
 #include <cmath>
 

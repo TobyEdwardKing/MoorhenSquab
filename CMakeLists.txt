@@ -45,6 +45,7 @@ add_executable(saxs
     src/formFactor.cpp
     src/DebyeCalculator.cpp
     src/scatteringModel.cpp
+    src/hydrationShell.cpp
 )
 
 target_link_libraries(saxs PRIVATE gemmi_cpp)
