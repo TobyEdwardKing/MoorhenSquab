@@ -190,33 +190,6 @@ The WebGPU implementation currently computes atomic Debye scattering and is unde
 
 ---
 
-## Scientific Background
-
-For scattering vector magnitude (q), the intensity is calculated using the Debye equation
-
-[
-I(q)
-====
-
-\sum_i
-\sum_j
-f_i(q)f_j(q)
-\frac{\sin(qr_{ij})}{qr_{ij}}
-]
-
-where
-
-* (f_i(q)) are effective atomic scattering amplitudes,
-* (r_{ij}) is the interatomic distance.
-
-The complete model also includes
-
-* excluded solvent correction
-* hydration shell scattering
-* atom–shell cross terms
-* shell–shell interactions
-
----
 
 ## Author
 
