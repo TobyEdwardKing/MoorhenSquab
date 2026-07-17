@@ -17,7 +17,7 @@ export class DebyeGPU {
 
     positionBuffer!: GPUBuffer;
 
-    formFactorBuffer!: GPUBuffer;
+    amplitudeBuffer!: GPUBuffer;
 
     outputBuffer!: GPUBuffer;
 
@@ -110,10 +110,10 @@ export class DebyeGPU {
 
     uploadBuffers(
         positions: Float32Array,
-        formFactors: Float32Array
+        amplitudes: Float32Array
     )
     {
-        this.atomCount = formFactors.length;
+        this.atomCount = amplitudes.length;
         console.log("positionBuffer", positions.byteLength);
         this.positionBuffer =
             this.device.createBuffer({
@@ -131,12 +131,12 @@ export class DebyeGPU {
             0,
             positions
         );
-        console.log("formFactorBuffer", formFactors.byteLength);
+        console.log("amplitudeBuffer", amplitudes.byteLength);
 
-        this.formFactorBuffer =
+        this.amplitudeBuffer  =
             this.device.createBuffer({
 
-                size: formFactors.byteLength,
+                size: amplitudes.byteLength,
 
                 usage:
                     GPUBufferUsage.STORAGE |
@@ -145,9 +145,9 @@ export class DebyeGPU {
             });
 
         this.device.queue.writeBuffer(
-            this.formFactorBuffer,
+            this.amplitudeBuffer ,
             0,
-            formFactors
+            amplitudes
         );
 
         this.outputBuffer =
@@ -191,7 +191,8 @@ export class DebyeGPU {
                 {
                     binding:1,
                     resource:{
-                        buffer:this.formFactorBuffer
+                        buffer:this.amplitudeBuffer,
+
                     }
                 },
 

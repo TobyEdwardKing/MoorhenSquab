@@ -98,14 +98,14 @@ function App() {
             );
 
         console.log(test);
-        module.compute_debye_curve(
-            formFactorJSON,
-            text,
-            file.name,
-            0.0,   // qMin
-            0.5,   // qMax
-            0.005  // qStep
-        );
+        // module.compute_debye_curve(
+        //     formFactorJSON,
+        //     text,
+        //     file.name,
+        //     0.0,   // qMin
+        //     0.5,   // qMax
+        //     0.005  // qStep
+        // );
         module.prepare_debye_gpu(
             formFactorJSON,
             text,
@@ -114,7 +114,7 @@ function App() {
         );
 
         const posVec = module.get_positions();
-        const ffVec = module.get_form_factors();
+        const ffVec = module.get_amplitudes();
         console.log("positions size", posVec.size());
         console.log("form factors size", ffVec.size());
         const positions = new Float32Array(posVec.size());
@@ -136,53 +136,52 @@ function App() {
         formFactors.length,
         formFactors.byteLength
         );
-        if (gpu) {
-            gpu.uploadBuffers(
-                positions,
-                formFactors
-            );
-
-            console.log("Buffers uploaded to GPU");
-        const gpuCurve =
-            await gpu.calculateCurve(
-                0.0,
-                0.5,
-                0.005
-            );
-
-        console.log(
-            "GPU curve:",
-            gpuCurve
-        );
-
-        for (let i = 0; i < gpuCurve.qValues.length; i++)
-        {
-            console.log(
-                gpuCurve.qValues[i],
-                gpuCurve.intensities[i]
-            );
-        }
-        console.log("GPU dispatch finished");
-        }
-        const n = module.curve_size();
-
-        console.log("Curve contains", n, "points");
-
-        for (let i = 0; i < n; i++) {
-
-            console.log(
-                module.curve_q(i),
-                module.curve_intensity(i)
-            );
-            if (Math.abs(module.curve_q(i) - 0.1) < 1e-6)
+        if (gpu)
             {
-                console.log(
-                    "CPU intensity at q=0.1:",
-                    module.curve_intensity(i)
+                gpu.uploadBuffers(
+                    positions,
+                    formFactors
                 );
+
+                console.log("Buffers uploaded to GPU");
+
+                const gpuCurve =
+                    await gpu.calculateCurve(
+                        0.0,
+                        0.5,
+                        0.005
+                    );
+
+                console.log(
+                    "GPU curve:",
+                    gpuCurve
+                );
+
+                console.log(
+                    "Curve contains",
+                    gpuCurve.qValues.length,
+                    "points"
+                );
+
+                for (let i = 0; i < gpuCurve.qValues.length; i++)
+                {
+                    console.log(
+                        gpuCurve.qValues[i],
+                        gpuCurve.intensities[i]
+                    );
+
+                    if (Math.abs(gpuCurve.qValues[i] - 0.1) < 1e-6)
+                    {
+                        console.log(
+                            "GPU intensity at q = 0.1:",
+                            gpuCurve.intensities[i]
+                        );
+                    }
+                }
+
+                console.log("GPU dispatch finished");
             }
-        }
-    }
+}
 
     return (
 

@@ -131,50 +131,50 @@ std::string form_factor_test(
 }
 
 
-void compute_debye_curve(
-    const std::string& json,
-    const std::string& contents,
-    const std::string& filename,
-    double qMin,
-    double qMax,
-    double qStep)
-{
-    FormFactorTable table;
+// void compute_debye_curve(
+//     const std::string& json,
+//     const std::string& contents,
+//     const std::string& filename,
+//     double qMin,
+//     double qMax,
+//     double qStep)
+// {
+//     FormFactorTable table;
 
-    if (!table.load_from_string(json))
-        return;
+//     if (!table.load_from_string(json))
+//         return;
 
-    app.atoms =
-        AtomExtractor::extract_atoms_from_string(
-            contents,
-            filename);
+//     app.atoms =
+//         AtomExtractor::extract_atoms_from_string(
+//             contents,
+//             filename);
 
-    calculator.compute_curve(
-        app.atoms,
-        table,
-        qMin,
-        qMax,
-        qStep);
-    std::cout
-        << "Calculator reports "
-        << calculator.curve_size()
-        << " points\n";
-}
+//     // calculator.compute_curve(
+//     //     app.atoms,
+//     //     table,
+//     //     qMin,
+//     //     qMax,
+//     //     qStep);
+//     // std::cout
+//     //     << "Calculator reports "
+//     //     << calculator.curve_size()
+//     //     << " points\n";
+// }
 
-int curve_size()
-{
-    return calculator.curve_size();
-}
+// int curve_size()
+// {
+//     return calculator.curve_size();
+// }
 
-double curve_q(int i)
-{
-    return calculator.q_value(i);
-}
+// double curve_q(int i)
+// {
+//     return calculator.q_value(i);
+// }
 
-double curve_intensity(int i)
-{
-    return calculator.intensity_value(i);
-}
+// double curve_intensity(int i)
+// {
+//     return calculator.intensity_value(i);
+// }
 
 void prepare_debye_gpu(
     const std::string& json,
@@ -200,12 +200,14 @@ void prepare_debye_gpu(
             << calculator.get_positions().size()
             << "\n";
 
-    std::cout << "form factors after prepare = "
-            << calculator.get_form_factors().size()
-            << "\n";
-    std::cout << "prepare_debye_gpu atoms = "
-          << app.atoms.size()
-          << "\n";
+    std::cout
+        << "prepare_debye_gpu GPU scatterers = "
+        << calculator.get_amplitudes().size()
+        << "\n";
+    std::cout
+        << "prepare_debye_gpu atomic inputs = "
+        << app.atoms.size()
+        << "\n";
 }
 
 std::vector<float> get_positions()
@@ -213,9 +215,9 @@ std::vector<float> get_positions()
     return calculator.get_positions();
 }
 
-std::vector<float> get_form_factors()
+std::vector<float> get_amplitudes()
 {
-    return calculator.get_form_factors();
+    return calculator.get_amplitudes();
 }
 
 EMSCRIPTEN_BINDINGS(saxs)
@@ -243,21 +245,21 @@ EMSCRIPTEN_BINDINGS(saxs)
         &form_factor_test);
 
 
-    emscripten::function(
-        "compute_debye_curve",
-        &compute_debye_curve);
+    // emscripten::function(
+    //     "compute_debye_curve",
+    //     &compute_debye_curve);
 
-    emscripten::function(
-        "curve_size",
-        &curve_size);
+    // emscripten::function(
+    //     "curve_size",
+    //     &curve_size);
 
-    emscripten::function(
-        "curve_q",
-        &curve_q);
+    // emscripten::function(
+    //     "curve_q",
+    //     &curve_q);
 
-    emscripten::function(
-        "curve_intensity",
-        &curve_intensity);
+    // emscripten::function(
+    //     "curve_intensity",
+    //     &curve_intensity);
     emscripten::function(
         "prepare_debye_gpu",
         &prepare_debye_gpu);
@@ -267,8 +269,8 @@ EMSCRIPTEN_BINDINGS(saxs)
         &get_positions);
 
     emscripten::function(
-        "get_form_factors",
-        &get_form_factors);
+        "get_amplitudes",
+        &get_amplitudes);
 }
 
     

@@ -7,7 +7,7 @@ struct Params {
 var<storage, read> positions : array<f32>;
 
 @group(0) @binding(1)
-var<storage, read> formFactors : array<f32>;
+var<storage, read> amplitudes: array<f32>;
 
 @group(0) @binding(2)
 var<storage, read_write> output : array<f32>;
@@ -43,7 +43,7 @@ fn main(
     let yi = positions[ix + 1u];
     let zi = positions[ix + 2u];
 
-    let fi = formFactors[i];
+    let fi = amplitudes[i];
 
     var total : f32 = 0.0;
 
@@ -62,7 +62,7 @@ fn main(
 
         total +=
             fi *
-            formFactors[j] *
+            amplitudes[j] *
             sinc(qr);
         }
     output[i] = total;

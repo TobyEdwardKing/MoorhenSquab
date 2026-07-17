@@ -48,23 +48,26 @@ void ScatteringModel::compute_amplitudes(
     shellScatterers_.reserve(
         shellPoints.size()
     );
+    const auto& hydrogen = table[0];
+    const auto& oxygen   = table[7];
+
+    const double waterAmplitude =
+        oxygen.evaluate(q)
+        + 2.0 * hydrogen.evaluate(q);
+
     for (const auto& point : shellPoints)
-        {
-            ShellScatterer scatterer;
+    {
+        ShellScatterer scatterer;
 
-            scatterer.x = point.x;
-            scatterer.y = point.y;
-            scatterer.z = point.z;
+        scatterer.x = point.x;
+        scatterer.y = point.y;
+        scatterer.z = point.z;
 
-            //
-            // Temporary constant amplitude.
-            // We'll replace this with a proper water form factor.
-            //
+        scatterer.amplitude =
+            shellContrast_ * waterAmplitude;
 
-            scatterer.amplitude = shellContrast_;
-
-            shellScatterers_.push_back(scatterer);
-        }
+        shellScatterers_.push_back(scatterer);
+    }
     static bool printed = false;
 
     if (!printed)
@@ -134,22 +137,65 @@ void ScatteringModel::compute_amplitudes(
         totalEffective +=
             amplitudes_[i];
     }
+    double totalShellAmplitude = 0.0;
 
+    for (const auto& s : shellScatterers_)
+    {
+        totalShellAmplitude += s.amplitude;
+    }
+
+    const double totalGPUAmplitude =
+        totalEffective + totalShellAmplitude;
+
+    const double expectedI0 =
+        totalGPUAmplitude * totalGPUAmplitude;
     std::cout << "\n";
+
     std::cout
-        << "Atomic total    : "
+        << "===== Scatterer preparation =====\n";
+
+    std::cout
+        << "Atoms              : "
+        << atoms.size()
+        << "\n";
+
+    std::cout
+        << "Hydration points   : "
+        << shellScatterers_.size()
+        << "\n\n";
+
+    std::cout
+        << "Atomic amplitude sum : "
         << totalAtomic
         << "\n";
 
     std::cout
-        << "Excluded total  : "
+        << "Solvent exclusion   : "
         << totalExcluded
         << "\n";
 
     std::cout
-        << "Effective total : "
+        << "Effective atom sum  : "
         << totalEffective
-        << "\n\n";
+        << "\n";
+
+    std::cout
+        << "Hydration sum       : "
+        << totalShellAmplitude
+        << "\n";
+
+    std::cout
+        << "Total GPU amplitude : "
+        << totalGPUAmplitude
+        << "\n";
+
+    std::cout
+        << "Expected I(0)       : "
+        << expectedI0
+        << "\n";
+
+    std::cout
+        << "===============================\n\n";
 }
 
 const std::vector<double>&

@@ -12,12 +12,12 @@ class DebyeCalculator
 public:
 
     // Generate CPU SAXS curve
-    void compute_curve(
-        const std::vector<AtomData>& atoms,
-        const FormFactorTable& formFactors,
-        double qMin,
-        double qMax,
-        double qStep);
+    // void compute_curve(
+    //     const std::vector<AtomData>& atoms,
+    //     const FormFactorTable& formFactors,
+    //     double qMin,
+    //     double qMax,
+    //     double qStep);
 
 
     // Prepare contiguous arrays for GPU upload.
@@ -55,7 +55,8 @@ public:
     // safely into JavaScript.
     std::vector<float> get_positions() const;
 
-    std::vector<float> get_form_factors() const;
+    // std::vector<float> get_form_factors() const;
+    std::vector<float> get_amplitudes() const;
 
 
     // Number of atoms represented in the GPU buffers
@@ -87,26 +88,26 @@ private:
     //   f1,
     //   ...
     // ]
-    std::vector<float> formFactors;
-
+    // std::vector<float> formFactors;
+    std::vector<float> amplitudes;
     std::vector<ShellScatterer> shellScatterers;
     
     // Single-q Debye calculation
-    double calculate_point(
-        const std::vector<AtomData>& atoms,
-        const FormFactorTable& formFactors,
-        double q) const;
+    // double calculate_point(
+    //     const std::vector<AtomData>& atoms,
+    //     const FormFactorTable& formFactors,
+    //     double q) const;
 
-    double calculate_shell_shell(
-        const std::vector<ShellScatterer>& shell,
-        double q
-    ) const;
+    // double calculate_shell_shell(
+    //     const std::vector<ShellScatterer>& shell,
+    //     double q
+    // ) const;
 
-    double calculate_atom_shell(
-    const std::vector<AtomData>& atoms,
-    const std::vector<ShellScatterer>& shell,
-    const std::vector<double>& amplitudes,
-    double q
-    ) const;
+    // double calculate_atom_shell(
+    // const std::vector<AtomData>& atoms,
+    // const std::vector<ShellScatterer>& shell,
+    // const std::vector<double>& amplitudes,
+    // double q
+    // ) const;
     
 };

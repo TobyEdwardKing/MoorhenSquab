@@ -109,14 +109,16 @@ bool DebyePipeline::set_data(const std::vector<AtomData>& atoms,
     auto& device = context_.device();
     auto& queue  = context_.queue();
 
-    atom_count_ = atoms.size();
-    q_count_ = qValues.size();
-    FormFactorTable fft;
-    fft.load("elementsInfo.json"); // or stored filename
+    // atom_count_ = atoms.size();
+    // q_count_ = qValues.size();
+    // FormFactorTable fft;
+    // fft.load("elementsInfo.json"); // or stored filename
 
-    std::vector<float> gpuFormFactors =
-        fft.build_gpu_table(qValues);
-        
+    // std::vector<float> gpuFormFactors =
+    //     fft.build_gpu_table(qValues);
+    atom_count_ = formFactors.size();
+    q_count_ = qValues.size();    
+
     // atoms
     atom_buffer_ = makeBuffer(
         device,
@@ -133,15 +135,16 @@ bool DebyePipeline::set_data(const std::vector<AtomData>& atoms,
 
     form_factor_buffer_ = makeBuffer(
         device,
-        gpuFormFactors.size() * sizeof(float),
-        wgpu::BufferUsage::Storage | wgpu::BufferUsage::CopyDst
+        formFactors.size() * sizeof(float),
+        wgpu::BufferUsage::Storage |
+        wgpu::BufferUsage::CopyDst
     );
 
     queue.WriteBuffer(
         form_factor_buffer_,
         0,
-        gpuFormFactors.data(),
-        gpuFormFactors.size() * sizeof(float)
+        formFactors.data(),
+        formFactors.size() * sizeof(float)
     );
 
     // q values
