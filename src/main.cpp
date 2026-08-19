@@ -5,130 +5,129 @@
 #include "formFactor.hpp"
 #include "ApplicationState.hpp"
 #include "DebyeCalculator.hpp"
-
 #include <algorithm>
 #include <sstream>
 #include <iostream>
-
+#include "proteinAtomType.hpp"
 
 
 ApplicationState app;
 DebyeCalculator calculator;
+ProteinAtomTypeTable proteinAtomTypes;
+// int atom_count(
+//     const std::string& text,
+//     const std::string& filename)
+// {
+//     app.atoms =
+//         AtomExtractor::extract_atoms_from_string(
+//             text,
+//             filename);
 
-int atom_count(
-    const std::string& text,
-    const std::string& filename)
-{
-    app.atoms =
-        AtomExtractor::extract_atoms_from_string(
-            text,
-            filename);
-
-    return app.atoms.size();
-}
-
-
-std::string atom_summary(
-    const std::string& text,
-    const std::string& filename)
-{
-    return atom_summary_from_string(
-        text,
-        filename);
-}
+//     return app.atoms.size();
+// }
 
 
-std::string form_factor_summary(
-    const std::string& text,
-    const std::string& filename,
-    const std::string& jsonText)
-{
-    app.atoms =
-        AtomExtractor::extract_atoms_from_string(
-            text,
-            filename);
+// std::string atom_summary(
+//     const std::string& text,
+//     const std::string& filename)
+// {
+//     return atom_summary_from_string(
+//         text,
+//         filename);
+// }
 
 
-    FormFactorTable table;
-
-    if (!table.load_from_string(jsonText))
-    {
-        return "Failed to load form factors";
-    }
-
-
-    std::stringstream output;
-
-    output << "Form factor test\n";
-    output << "Atoms: "
-           << app.atoms.size()
-           << "\n\n";
+// std::string form_factor_summary(
+//     const std::string& text,
+//     const std::string& filename,
+//     const std::string& jsonText)
+// {
+//     app.atoms =
+//         AtomExtractor::extract_atoms_from_string(
+//             text,
+//             filename);
 
 
-    for (size_t i = 0;
-         i < std::min<size_t>(10, app.atoms.size());
-         i++)
-    {
-        const auto& atom = app.atoms[i];
+//     FormFactorTable table;
+
+//     if (!table.load_from_string(jsonText))
+//     {
+//         return "Failed to load form factors";
+//     }
 
 
-        if (!table.contains(atom.Z))
-        {
-            output
-                << i
-                << " missing form factor\n";
+//     std::stringstream output;
 
-            continue;
-        }
+//     output << "Form factor test\n";
+//     output << "Atoms: "
+//            << app.atoms.size()
+//            << "\n\n";
 
 
-        const auto& ff =
-            table[atom.Z];
+//     for (size_t i = 0;
+//          i < std::min<size_t>(10, app.atoms.size());
+//          i++)
+//     {
+//         const auto& atom = app.atoms[i];
 
 
-        output
-            << i
-            << " lookup="
-            << atom.Z
-            << " atomic_number="
-            << ff.atomic_number
-            << " f(0)="
-            << ff.evaluate(0.0)
-            << "\n";
-    }
+//         if (!table.contains(atom.Z))
+//         {
+//             output
+//                 << i
+//                 << " missing form factor\n";
+
+//             continue;
+//         }
 
 
-    return output.str();
-}
+//         const auto& ff =
+//             table[atom.Z];
 
 
-std::string form_factor_test(
-    const std::string& json,
-    const std::string& contents,
-    const std::string& filename)
-{
-    FormFactorTable table;
-
-    if (!table.load_from_string(json))
-        return "Failed loading form factors";
-
-
-    app.atoms =
-        AtomExtractor::extract_atoms_from_string(
-            contents,
-            filename);
+//         output
+//             << i
+//             << " lookup="
+//             << atom.Z
+//             << " atomic_number="
+//             << ff.atomic_number
+//             << " f(0)="
+//             << ff.evaluate(0.0)
+//             << "\n";
+//     }
 
 
-    std::vector<uint32_t> Zs;
-
-    for (const auto& atom : app.atoms)
-    {
-        Zs.push_back(atom.Z);
-    }
+//     return output.str();
+// }
 
 
-    return table.test_lookup(Zs);
-}
+// std::string form_factor_test(
+//     const std::string& json,
+//     const std::string& contents,
+//     const std::string& filename)
+// {
+//     FormFactorTable table;
+
+//     if (!table.load_from_string(json))
+//         return "Failed loading form factors";
+
+
+//     app.atoms =
+//         AtomExtractor::extract_atoms_from_string(
+//             contents,
+//             filename);
+
+
+//     std::vector<uint32_t> Zs;
+
+//     for (const auto& atom : app.atoms)
+//     {
+//         Zs.push_back(atom.Z);
+//     }
+
+
+//     return table.test_lookup(Zs);
+// }
 
 
 // void compute_debye_curve(
@@ -177,7 +176,9 @@ std::string form_factor_test(
 // }
 
 void prepare_debye_gpu(
-    const std::string& json,
+    const std::string& elementJson,
+    const std::string& saxsAtomTypeJson,
+    const std::string& residueAtomTypeJson,
     const std::string& contents,
     const std::string& filename,
     double q)
@@ -185,12 +186,31 @@ void prepare_debye_gpu(
     std::cout << "ENTERED prepare_debye_gpu\n";
     FormFactorTable table;
 
-    table.load_from_string(json);
+    if (!table.load_element_table(elementJson))
+    {
+        throw std::runtime_error(
+            "Failed loading element form factors");
+    }
+
+    if (!table.load_atomtype_table(saxsAtomTypeJson))
+    {
+        throw std::runtime_error(
+            "Failed loading SAXS atom type form factors");
+    }
+
+    if (!proteinAtomTypes.load_from_string(residueAtomTypeJson))
+    {
+        throw std::runtime_error(
+            "Failed loading residue atom types");
+    }
+
+
 
     app.atoms =
         AtomExtractor::extract_atoms_from_string(
             contents,
-            filename);
+            filename,
+            proteinAtomTypes);
 
     calculator.prepare_buffers(
         app.atoms,
@@ -225,24 +245,24 @@ EMSCRIPTEN_BINDINGS(saxs)
     emscripten::register_vector<float>(
         "FloatVector");
 
-    emscripten::function(
-        "atom_count",
-        &atom_count);
+    // emscripten::function(
+    //     "atom_count",
+    //     &atom_count);
 
 
-    emscripten::function(
-        "atom_summary",
-        &atom_summary);
+    // emscripten::function(
+    //     "atom_summary",
+    //     &atom_summary);
 
 
-    emscripten::function(
-        "form_factor_summary",
-        &form_factor_summary);
+    // emscripten::function(
+    //     "form_factor_summary",
+    //     &form_factor_summary);
 
 
-    emscripten::function(
-        "form_factor_test",
-        &form_factor_test);
+    // emscripten::function(
+    //     "form_factor_test",
+    //     &form_factor_test);
 
 
     // emscripten::function(

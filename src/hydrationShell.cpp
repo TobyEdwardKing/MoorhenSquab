@@ -26,6 +26,42 @@ HydrationShell::directions =
 };
 
 
+static bool point_is_buried(
+    double x,
+    double y,
+    double z,
+    const AtomData& sourceAtom,
+    const std::vector<AtomData>& atoms,
+    const FormFactorTable& table)
+{
+    for (const auto& other : atoms)
+    {
+        // Don't reject against the atom that generated this point.
+        if (&other == &sourceAtom)
+            continue;
+
+        if (!table.contains_element(other.Z))
+            continue;
+
+        const auto& otherFF =
+            table.get_element(other.Z);
+
+        const double dx = x - other.x;
+        const double dy = y - other.y;
+        const double dz = z - other.z;
+
+        const double distanceSquared =
+            dx*dx + dy*dy + dz*dz;
+
+        const double radius =
+            otherFF.atomic_radius;
+
+        if (distanceSquared < radius * radius)
+            return true;
+    }
+
+    return false;
+}
 
 std::vector<HydrationPoint>
 HydrationShell::generate(
@@ -39,12 +75,12 @@ HydrationShell::generate(
 
     for (const auto& atom : atoms)
     {
-        if (!table.contains(atom.Z))
+        if (!table.contains_element(atom.Z))
             continue;
 
 
         const auto& ff =
-            table[atom.Z];
+            table.get_element(atom.Z);
 
 
         const double shellRadius =
@@ -68,6 +104,16 @@ HydrationShell::generate(
                 atom.z +
                 shellRadius * dir[2];
 
+            if (point_is_buried(
+                    p.x,
+                    p.y,
+                    p.z,
+                    atom,
+                    atoms,
+                    table))
+            {
+                continue;
+            }
 
             shell.push_back(p);
         }

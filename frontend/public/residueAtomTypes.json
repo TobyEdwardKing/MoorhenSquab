@@ -1,0 +1,328 @@
+{
+  "SER": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "CB": "C(sp3)-H2",
+    "OG": "O(alc)-H"
+  },
+
+  "THR": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "CB": "C(sp3)-H",
+    "OG1": "O(alc)-H",
+    "CG2": "C(sp3)-H3"
+  },
+
+  "ASN": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "CB": "C(sp3)-H2",
+    "CG": "C(sp2)-H",
+    "OD1": "O(resonance)",
+    "ND2": "N-H2"
+  },
+
+  "GLN": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "CB": "C(sp3)-H2",
+    "CG": "C(sp3)-H2",
+    "CD": "C(sp2)-H",
+    "OE1": "O(resonance)",
+    "NE2": "N-H2"
+  },
+
+  "TYR": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "CB": "C(sp3)-H2",
+    "CG": "C(arom)-H",
+    "CD1": "C(arom)-H",
+    "CD2": "C(arom)-H",
+    "CE1": "C(arom)-H",
+    "CE2": "C(arom)-H",
+    "CZ": "C(arom)-H",
+    "OH": "O(alc)-H"
+  },
+
+  "CYS": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "CB": "C(sp3)-H2",
+    "SG": "S-H"
+  },
+
+
+
+  "GLY": {
+    "N": "N-H",
+    "CA": "C(sp3)-H2",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)"
+  },
+
+  "ALA": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "CB": "C(sp3)-H3"
+  },
+
+  "VAL": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "CB": "C(sp3)-H",
+    "CG1": "C(sp3)-H3",
+    "CG2": "C(sp3)-H3"
+  },
+
+  "LEU": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "CB": "C(sp3)-H2",
+    "CG": "C(sp3)-H",
+    "CD1": "C(sp3)-H3",
+    "CD2": "C(sp3)-H3"
+  },
+
+  "ILE": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "CB": "C(sp3)-H",
+    "CG1": "C(sp3)-H2",
+    "CG2": "C(sp3)-H3",
+    "CD1": "C(sp3)-H3"
+  },
+
+  "MET": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "CB": "C(sp3)-H2",
+    "CG": "C(sp3)-H2",
+    "SD": "S",
+    "CE": "C(sp3)-H3"
+  },
+
+  "PRO": {
+    "N": "N",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "CB": "C(sp3)-H2",
+    "CG": "C(sp3)-H2",
+    "CD": "C(sp3)-H2"
+  },
+
+  "PHE": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "CB": "C(sp3)-H2",
+    "CG": "C(arom)-H",
+    "CD1": "C(arom)-H",
+    "CD2": "C(arom)-H",
+    "CE1": "C(arom)-H",
+    "CE2": "C(arom)-H",
+    "CZ": "C(arom)-H"
+  },
+
+  "TRP": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "CB": "C(sp3)-H2",
+    "CG": "C(arom)-H",
+    "CD1": "C(arom)-H",
+    "CD2": "C(arom)-H",
+    "NE1": "N-H",
+    "CE2": "C(arom)-H",
+    "CE3": "C(arom)-H",
+    "CZ2": "C(arom)-H",
+    "CZ3": "C(arom)-H",
+    "CH2": "C(arom)-H"
+  },
+
+  "MSE": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "CB": "C(sp3)-H2",
+    "CG": "C(sp3)-H2",
+    "SE": "SE",
+    "CE": "C(sp3)-H3"
+  },
+
+
+
+  "ASP": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "OXT": "O(alc)-H",
+    "CB": "C(sp3)-H2",
+    "CG": "C(sp2)-H",
+    "OD1": "O(resonance)",
+    "OD2": "O(resonance)"
+  },
+
+  "ASH": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "OXT": "O(alc)-H",
+    "CB": "C(sp3)-H2",
+    "CG": "C(sp2)-H",
+    "OD1": "O(resonance)",
+    "OD2": "O(alc)-H"
+  },
+
+  "GLU": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "OXT": "O(alc)-H",
+    "CB": "C(sp3)-H2",
+    "CG": "C(sp3)-H2",
+    "CD": "C(sp2)-H",
+    "OE1": "O(resonance)",
+    "OE2": "O(resonance)"
+  },
+
+  "GLH": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "OXT": "O(alc)-H",
+    "CB": "C(sp3)-H2",
+    "CG": "C(sp3)-H2",
+    "CD": "C(sp2)-H",
+    "OE1": "O(resonance)",
+    "OE2": "O(alc)-H"
+  },
+
+  "ARG": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "OXT": "O(alc)-H",
+    "CB": "C(sp3)-H2",
+    "CG": "C(sp3)-H2",
+    "CD": "C(sp3)-H2",
+    "NE": "N-H",
+    "CZ": "C(sp2)-H",
+    "NH1": "N-H+",
+    "NH2": "N-H+"
+  },
+
+  "LYS": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "OXT": "O(alc)-H",
+    "CB": "C(sp3)-H2",
+    "CG": "C(sp3)-H2",
+    "CD": "C(sp3)-H2",
+    "CE": "C(sp3)-H2",
+    "NZ": "N-H3+"
+  },
+
+  "LYN": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "OXT": "O(alc)-H",
+    "CB": "C(sp3)-H2",
+    "CG": "C(sp3)-H2",
+    "CD": "C(sp3)-H2",
+    "CE": "C(sp3)-H2",
+    "NZ": "N-H2"
+  },
+
+  "HIS": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "OXT": "O(alc)-H",
+    "CB": "C(sp3)-H2",
+    "CG": "C(arom)-H",
+    "ND1": "N-H",
+    "CD2": "C(arom)-H",
+    "CE1": "C(arom)-H",
+    "NE2": "N-H"
+  },
+
+  "HID": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "OXT": "O(alc)-H",
+    "CB": "C(sp3)-H2",
+    "CG": "C(arom)-H",
+    "ND1": "N-H",
+    "CD2": "C(arom)-H",
+    "CE1": "C(arom)-H",
+    "NE2": "N"
+  },
+
+  "HIE": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "OXT": "O(alc)-H",
+    "CB": "C(sp3)-H2",
+    "CG": "C(arom)-H",
+    "ND1": "N",
+    "CD2": "C(arom)-H",
+    "CE1": "C(arom)-H",
+    "NE2": "N-H"
+  },
+
+  "HIP": {
+    "N": "N-H",
+    "CA": "C(sp3)-H",
+    "C": "C(sp2)-H",
+    "O": "O(resonance)",
+    "OXT": "O(alc)-H",
+    "CB": "C(sp3)-H2",
+    "CG": "C(arom)-H",
+    "ND1": "N-H+",
+    "CD2": "C(arom)-H",
+    "CE1": "C(arom)-H",
+    "NE2": "N-H+"
+  }
+}

@@ -427,10 +427,10 @@ this.reduceBindGroup =
 
     const intensity = result[0];
 
-    console.log(
-        "GPU intensity:",
-        intensity
-    );
+    // console.log(
+    //     "GPU intensity:",
+    //     intensity
+    // );
 
     readBuffer.unmap();
 

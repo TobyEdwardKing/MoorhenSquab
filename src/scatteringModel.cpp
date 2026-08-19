@@ -12,29 +12,91 @@ void ScatteringModel::compute_amplitudes(
     amplitudes_.clear();
     amplitudes_.reserve(atoms.size());
 
+    // for (const auto& atom : atoms)
+    //     {
+    //         const FormFactor* ff = nullptr;
+
+    //         if (!atom.atomType.empty() &&
+    //             table.contains_atom_type(atom.atomType))
+    //         {
+    //             ff = &table.get_atom_type(atom.atomType);
+    //         }
+    //         else if (table.contains_element(atom.Z))
+    //         {
+    //             ff = &table.get_element(atom.Z);
+    //         }
+    //         else
+    //         {
+    //             amplitudes_.push_back(0.0);
+    //             continue;
+    //         }
+
+    //         const double atomic =
+    //             ff->evaluate(q);
+
+    //         // Excluded volume still comes from the element table
+    //         if (!table.contains_element(atom.Z))
+    //         {
+    //             amplitudes_.push_back(0.0);
+    //             continue;
+    //         }
+
+    //         const auto& elementFF =
+    //             table.get_element(atom.Z);
+
+    //         const double excluded =
+    //             solventDensity_ *
+    //             elementFF.excluded_amplitude(q);
+
+    //         amplitudes_.push_back(
+    //             atomic -
+    //             excluded
+    //         );
+    //     }
     for (const auto& atom : atoms)
-    {
-        if (!table.contains(atom.Z))
         {
-            amplitudes_.push_back(0.0);
-            continue;
+            const FormFactor* ff = nullptr;
+
+            // Protein atoms with a recognised atom type use
+            // the protein/SAXS atom-type form factor.
+            if (!atom.atomType.empty() &&
+                table.contains_atom_type(atom.atomType))
+            {
+                ff = &table.get_atom_type(atom.atomType);
+            }
+            // Everything else falls back to the elemental form factor.
+            // This includes ligand atoms.
+            else if (table.contains_element(atom.Z))
+            {
+                ff = &table.get_element(atom.Z);
+            }
+            else
+            {
+                amplitudes_.push_back(0.0);
+                continue;
+            }
+
+            const double atomic =
+                ff->evaluate(q);
+
+            // Elemental form factor is required for excluded volume.
+            if (!table.contains_element(atom.Z))
+            {
+                amplitudes_.push_back(0.0);
+                continue;
+            }
+
+            const auto& elementFF =
+                table.get_element(atom.Z);
+
+            const double excluded =
+                solventDensity_ *
+                elementFF.excluded_amplitude(q);
+
+            amplitudes_.push_back(
+                atomic - excluded
+            );
         }
-
-        const auto& ff =
-            table[atom.Z];
-
-        const double atomic =
-            ff.evaluate(q);
-
-        const double excluded =
-            ff.excluded_amplitude(q);
-
-        amplitudes_.push_back(
-            atomic -
-            solventDensity_ * excluded
-        );
-    }
-
     shellScatterers_.clear();
 
     HydrationShell shell;
@@ -48,9 +110,9 @@ void ScatteringModel::compute_amplitudes(
     shellScatterers_.reserve(
         shellPoints.size()
     );
-    const auto& hydrogen = table[0];
-    const auto& oxygen   = table[7];
 
+    const auto& hydrogen = table.get_element(0);
+    const auto& oxygen   = table.get_element(7);
     const double waterAmplitude =
         oxygen.evaluate(q)
         + 2.0 * hydrogen.evaluate(q);
@@ -95,15 +157,30 @@ void ScatteringModel::compute_amplitudes(
         i < std::min<size_t>(5, atoms.size());
         ++i)
     {
-        const auto& ff =
-            table[atoms[i].Z];
+        const FormFactor* ff = nullptr;
 
+        if (!atoms[i].atomType.empty() &&
+            table.contains_atom_type(atoms[i].atomType))
+        {
+            ff = &table.get_atom_type(atoms[i].atomType);
+        }
+        else if (table.contains_element(atoms[i].Z))
+        {
+            ff = &table.get_element(atoms[i].Z);
+        }
+        else
+        {
+            continue;
+        }
         const double atomic =
-            ff.evaluate(q);
+            ff->evaluate(q);
+
+        const auto& elementFF =
+            table.get_element(atoms[i].Z);
 
         const double excluded =
             solventDensity_ *
-            ff.excluded_amplitude(q);
+            elementFF.excluded_amplitude(q);
 
         const double effective =
             amplitudes_[i];
@@ -117,26 +194,83 @@ void ScatteringModel::compute_amplitudes(
             << "\n";
     }
 
+    // for (size_t i = 0;
+    //     i < atoms.size();
+    //     ++i)
+    // {
+    //     if (!table.contains_element(atoms[i].Z))
+    //         continue;
+
+    //     const FormFactor* ff = nullptr;
+
+    //     if (!atoms[i].atomType.empty() &&
+    //         table.contains_atom_type(atoms[i].atomType))
+    //     {
+    //         ff = &table.get_atom_type(atoms[i].atomType);
+    //     }
+    //     else if (table.contains_element(atoms[i].Z))
+    //     {
+    //         ff = &table.get_element(atoms[i].Z);
+    //     }
+    //     else
+    //     {
+    //         continue;
+    //     }
+
+    //     totalAtomic +=
+    //         ff->evaluate(q);
+    //     if (!table.contains_element(atoms[i].Z))
+    //     {
+    //         amplitudes_.push_back(0.0);
+    //         continue;
+    //     }
+
+    //     const auto& elementFF =
+    //         table.get_element(atoms[i].Z);
+
+    //     totalExcluded +=
+    //         solventDensity_ *
+    //         elementFF.excluded_amplitude(q);
+
+    //     totalEffective +=
+    //         amplitudes_[i];
+    // }
+
     for (size_t i = 0;
-        i < atoms.size();
-        ++i)
-    {
-        if (!table.contains(atoms[i].Z))
-            continue;
+            i < atoms.size();
+            ++i)
+        {
+            if (!table.contains_element(atoms[i].Z))
+                continue;
 
-        const auto& ff =
-            table[atoms[i].Z];
+            const FormFactor* ff = nullptr;
 
-        totalAtomic +=
-            ff.evaluate(q);
+            if (!atoms[i].atomType.empty() &&
+                table.contains_atom_type(atoms[i].atomType))
+            {
+                ff = &table.get_atom_type(atoms[i].atomType);
+            }
+            else
+            {
+                // Ligands and other atoms without a recognised
+                // protein atom type use the elemental form factor.
+                ff = &table.get_element(atoms[i].Z);
+            }
 
-        totalExcluded +=
-            solventDensity_ *
-            ff.excluded_amplitude(q);
+            totalAtomic +=
+                ff->evaluate(q);
 
-        totalEffective +=
-            amplitudes_[i];
-    }
+            const auto& elementFF =
+                table.get_element(atoms[i].Z);
+
+            totalExcluded +=
+                solventDensity_ *
+                elementFF.excluded_amplitude(q);
+
+            totalEffective +=
+                amplitudes_[i];
+        }
+        
     double totalShellAmplitude = 0.0;
 
     for (const auto& s : shellScatterers_)

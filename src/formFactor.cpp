@@ -46,15 +46,15 @@ double FormFactor::excluded_amplitude(double q) const
            (qr * qr * qr);
 }
 
-bool FormFactorTable::load_from_string(
+bool FormFactorTable::load_element_table(
     const std::string& jsonContents)
 {
     json j = json::parse(jsonContents);
 
-    table_.clear();
+    element_table_.clear();
 
     // reserve enough space for Z=1..118
-    table_.resize(118);
+    element_table_.resize(118);
 
 
     for (auto& [element, value] : j.items())
@@ -141,14 +141,14 @@ bool FormFactorTable::load_from_string(
 
         if (index >= 0)
         {
-            table_[index] = ff;
+            element_table_[index] = ff;
         }
     }
 
 
     std::cout
         << "Loaded "
-        << table_.size()
+        << element_table_.size()
         << " form factor entries."
         << std::endl;
 
@@ -158,35 +158,39 @@ bool FormFactorTable::load_from_string(
 
 
 
-bool FormFactorTable::contains(
+bool FormFactorTable::contains_element(
     uint32_t index) const
 {
-    return index < table_.size()
-        && table_[index].atomic_number != 0;
+    return index < element_table_.size()
+        && element_table_[index].atomic_number != 0;
 }
 
 
 
-const FormFactor& FormFactorTable::operator[](
+const FormFactor& FormFactorTable::get_element(
     uint32_t index) const
 {
-    if (!contains(index))
-    {
+    if (!contains_element(index))
+        {
         throw std::runtime_error(
             "Missing form factor index");
     }
 
 
-    return table_[index];
+    return element_table_[index];
 }
 
 
 
-size_t FormFactorTable::size() const
+size_t FormFactorTable::number_of_elements() const
 {
-    return table_.size();
+    return element_table_.size();
 }
 
+size_t FormFactorTable::number_of_atom_types() const
+{
+    return atomtype_table_.size();
+}
 
 std::string FormFactorTable::test_lookup(
     const std::vector<uint32_t>& atomicNumbers
@@ -224,8 +228,8 @@ std::string FormFactorTable::test_lookup(
             << "\n";
 
 
-        if (!contains(index))
-        {
+        if (!contains_element(index))
+            {
             out << "  ERROR: no form factor found\n\n";
             count++;
             continue;
@@ -233,7 +237,7 @@ std::string FormFactorTable::test_lookup(
 
 
         const auto& ff =
-            (*this)[index];
+            get_element(index);
 
 
         out << "  Stored Z: "
@@ -258,4 +262,69 @@ std::string FormFactorTable::test_lookup(
 
 
     return out.str();
+}
+
+
+
+bool FormFactorTable::load_atomtype_table(
+    const std::string& jsonContents)
+{
+    json j = json::parse(jsonContents);
+
+    atomtype_table_.clear();
+
+    for (auto& [atomType, value] : j.items())
+    {
+        FormFactor ff;
+
+        // a coefficients
+        if (!value.contains("a") || value["a"].size() != 5)
+            throw std::runtime_error(
+                "Invalid atom type entry: " + atomType);
+
+        for (int i = 0; i < 5; i++)
+            ff.a[i] = value["a"][i].get<double>();
+
+        // b coefficients
+        if (!value.contains("b") || value["b"].size() != 5)
+            throw std::runtime_error(
+                "Invalid atom type entry: " + atomType);
+
+        for (int i = 0; i < 5; i++)
+            ff.b[i] = value["b"][i].get<double>();
+
+        ff.c = value["c"].get<double>();
+
+        atomtype_table_[atomType] = ff;
+    }
+
+    std::cout
+        << "Loaded "
+        << atomtype_table_.size()
+        << " PEPSI atom types."
+        << std::endl;
+
+    return true;
+}
+
+bool FormFactorTable::contains_atom_type(
+    const std::string& atomType) const
+{
+    return atomtype_table_.find(atomType)
+        != atomtype_table_.end();
+}
+
+const FormFactor&
+FormFactorTable::get_atom_type(
+    const std::string& atomType) const
+{
+    auto it = atomtype_table_.find(atomType);
+
+    if (it == atomtype_table_.end())
+    {
+        throw std::runtime_error(
+            "Unknown SAXS atom type: " + atomType);
+    }
+
+    return it->second;
 }

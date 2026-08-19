@@ -10,8 +10,11 @@ function App() {
     const [fileContents, setFileContents] = useState("");
     const [atomCount, setAtomCount] = useState<number | null>(null);
     const [summary, setSummary] = useState("");
-    const [formFactorJSON, setFormFactorJSON] = useState("");
-
+    // const [formFactorJSON, setFormFactorJSON] = useState("");
+    // const [atomTypeJSON, setAtomTypeJSON] = useState("");
+    const [elementJSON, setElementJSON] = useState("");
+    const [saxsAtomTypeJSON, setSaxsAtomTypeJSON] = useState("");
+    const [residueAtomTypeJSON, setResidueAtomTypeJSON] = useState("");
     const [gpu, setGpu] =
         useState<DebyeGPU|null>(null);
 
@@ -33,18 +36,41 @@ function App() {
         });
 
 
-        const response = await fetch(
-            "/elementsInfo.json"
-        );
+        // const elementResponse = await fetch("/elementsInfo.json");
+        // const atomTypeResponse = await fetch("/residueAtomTypes.json");
 
-        const jsonText = await response.text();
+        // const elementJson = await elementResponse.text();
+        // const atomTypeJson = await atomTypeResponse.text();
 
+        // setFormFactorJSON(elementJson);
+        // setAtomTypeJSON(atomTypeJson);
 
-        setFormFactorJSON(jsonText);
+        const elementResponse =
+            await fetch("/elementsInfo.json");
 
+        const saxsAtomTypeResponse =
+            await fetch("/SAXSAtomTypes.json");
+
+        const residueAtomTypeResponse =
+            await fetch("/residueAtomTypes.json");
+
+        const elementJson =
+            await elementResponse.text();
+
+        const saxsAtomTypeJson =
+            await saxsAtomTypeResponse.text();
+
+        const residueAtomTypeJson =
+            await residueAtomTypeResponse.text();
+
+        setElementJSON(elementJson);
+        setSaxsAtomTypeJSON(saxsAtomTypeJson);
+        setResidueAtomTypeJSON(residueAtomTypeJson);
 
         setModule(wasm);
-
+        console.log("elementJSON:", elementJSON.slice(0, 200));
+        console.log("saxsAtomTypeJSON:", saxsAtomTypeJSON.slice(0, 200));
+        console.log("residueAtomTypeJSON:", residueAtomTypeJSON.slice(0, 200));
         console.log(wasm);
         console.log(Object.keys(wasm));
         console.log("WASM loaded.");
@@ -75,29 +101,30 @@ function App() {
         setFileContents(text);
         console.log(file.name);
         console.log(fileContents.substring(0, 300));
-        const nAtoms = module.atom_count(
-            text,
-            file.name
-        );
-        setAtomCount(nAtoms);
+        console.log(text.substring(0,300));
+        // const nAtoms = module.atom_count(
+        //     text,
+        //     file.name
+        // );
+        // setAtomCount(nAtoms);
 
-        const summary =
-            module.atom_summary(
-                text,
-                file.name);
+        // const summary =
+        //     module.atom_summary(
+        //         text,
+        //         file.name);
 
-        console.log(summary);
+        // console.log(summary);
 
-        setSummary(summary);
+        // setSummary(summary);
         
-        const test =
-            module.form_factor_test(
-                formFactorJSON,
-                text,
-                file.name
-            );
+        // const test =
+        //     module.form_factor_test(
+        //         formFactorJSON,
+        //         text,
+        //         file.name
+        //     );
 
-        console.log(test);
+        // console.log(test);
         // module.compute_debye_curve(
         //     formFactorJSON,
         //     text,
@@ -106,13 +133,19 @@ function App() {
         //     0.5,   // qMax
         //     0.005  // qStep
         // );
+        console.log("ABOUT TO CALL prepare_debye_gpu");
+        console.log("elementJSON first chars:", JSON.stringify(elementJSON.slice(0, 100)));
+        console.log("saxsAtomTypeJSON first chars:", JSON.stringify(saxsAtomTypeJSON.slice(0, 100)));
+        console.log("residueAtomTypeJSON first chars:", JSON.stringify(residueAtomTypeJSON.slice(0, 100)));
+
         module.prepare_debye_gpu(
-            formFactorJSON,
+            elementJSON,
+            saxsAtomTypeJSON,
+            residueAtomTypeJSON,
             text,
             file.name,
             0.1
         );
-
         const posVec = module.get_positions();
         const ffVec = module.get_amplitudes();
         console.log("positions size", posVec.size());

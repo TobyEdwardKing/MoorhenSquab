@@ -1,17 +1,16 @@
 #ifndef FORMFACTOR_HPP
 #define FORMFACTOR_HPP
 
-#include <vector>
 #include <array>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
-#include <stdexcept>
-
+#include <vector>
 
 struct FormFactor
 {
-    std::array<double,5> a{};
-    std::array<double,5> b{};
+    std::array<double, 5> a{};
+    std::array<double, 5> b{};
     double c = 0.0;
 
     double coherent_scattering_length = 0.0;
@@ -25,34 +24,65 @@ struct FormFactor
     double evaluate(double q) const;
 
     double excluded_amplitude(double q) const;
-
 };
 
 class FormFactorTable
 {
 public:
 
-    bool load_from_string(
+    //
+    // Loading
+    //
+
+    // Loads the existing element_info.json
+    bool load_element_table(
+        const std::string& jsonContents);
+
+    // Loads the new saxs_atom_types.json
+    bool load_atomtype_table(
         const std::string& jsonContents);
 
 
-    bool contains(
-        uint32_t index) const;
+    //
+    // Element lookup
+    //
+
+    bool contains_element(
+        uint32_t atomicNumber) const;
+
+    const FormFactor& get_element(
+        uint32_t atomicNumber) const;
 
 
-    const FormFactor& operator[](
-        uint32_t index) const;
+    //
+    // Protein atom-type lookup
+    //
+
+    bool contains_atom_type(
+        const std::string& atomType) const;
+
+    const FormFactor& get_atom_type(
+        const std::string& atomType) const;
 
 
-    size_t size() const;
+    //
+    // Diagnostics
+    //
+
+    size_t number_of_elements() const;
+
+    size_t number_of_atom_types() const;
 
     std::string test_lookup(
-        const std::vector<uint32_t>& atomicNumbers
-    ) const;
+        const std::vector<uint32_t>& atomicNumbers) const;
+
 private:
 
-    std::vector<FormFactor> table_;
+    // Indexed by atomic number - 1
+    std::vector<FormFactor> element_table_;
 
+    // Indexed by PEPSI atom type string
+    std::unordered_map<std::string, FormFactor> atomtype_table_;
 };
 
 #endif
