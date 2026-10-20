@@ -10,6 +10,8 @@
 #include <cstdio>
 #include <exception>
 #include <sstream>
+#include <stdexcept>
+#include <map>
 
 static bool ends_with(
     const std::string& value,
@@ -25,125 +27,122 @@ static bool ends_with(
 }
 
 
-// static void extract_structure(
-//     const gemmi::Model& model,
-//     std::vector<AtomData>& atoms,
-//     const ProteinAtomTypeTable& proteinAtomTypes)
-// {
-//     for (const auto& chain : model.chains)
-//     {
-//         for (const auto& residue : chain.residues)
-//         {
-//             const std::string residueName = residue.name;
+/*
+ * Extract atoms from a Gemmi model.
+ *
+ * Important:
+ *   - Atom identity is determined from atom.element, NOT from
+ *     residue/atom names.
+ *   - This means arbitrary valid PDB atom names are accepted:
+ *
+ *       GLU HN
+ *       GLU HA
+ *       GLU HB1
+ *       GLU OE1
+ *       ALA CA
+ *       ...
+ *
+ *   - Water is ignored.
+ *   - Atoms with an unknown elemental identity are skipped.
+ *
+ * The ProteinAtomTypeTable argument is retained in the function
+ * signature for compatibility with the existing API, but is not
+ * used here. Elemental atomic form factors do not require
+ * residue-specific atom names.
+ */
 
-//             for (const auto& atom : residue.atoms)
-//             {
-//                 const std::string atomName = atom.name;
-
-//                 std::string atomType =
-//                     proteinAtomTypes.lookup(
-//                         residueName,
-//                         atomName
-//                     );
-
-//                 atoms.push_back({
-//                     static_cast<float>(atom.pos.x),
-//                     static_cast<float>(atom.pos.y),
-//                     static_cast<float>(atom.pos.z),
-
-//                     static_cast<uint32_t>(
-//                         atom.element.atomic_number() - 1
-//                     ),
-
-//                     residueName,
-//                     atomName,
-//                     atomType
-//                 });
-//             }
-//         }
-//     }
-// }
 static void extract_structure(
     const gemmi::Model& model,
     std::vector<AtomData>& atoms,
     const ProteinAtomTypeTable& proteinAtomTypes)
 {
+    // Exclude explicit hydrogens because PEPSI unified atom types
+    // already account for attached hydrogens.
+    constexpr bool includeHydrogens = false;
+
     for (const auto& chain : model.chains)
     {
+        // Find the last polymer residue in this chain.
+        // Do not use residue numbering: numbering can contain gaps.
+        const gemmi::Residue* lastPolymerResidue = nullptr;
+
+        for (const auto& residue : chain.residues)
+        {
+            if (residue.entity_type != gemmi::EntityType::Water &&
+                residue.entity_type == gemmi::EntityType::Polymer)
+            {
+                lastPolymerResidue = &residue;
+            }
+        }
+
         for (const auto& residue : chain.residues)
         {
             const std::string residueName = residue.name;
 
-            // Gemmi tells us what kind of structural entity this residue
-            // belongs to: Polymer, NonPolymer, Branched, Water, etc.
-            const bool isPolymer =
-                residue.entity_type == gemmi::EntityType::Polymer;
-
-            // Ignore water for now.
-            //
-            // If you later want explicit solvent/hydration-shell treatment,
-            // handle it separately.
             if (residue.entity_type == gemmi::EntityType::Water)
                 continue;
-            printf(
-                    "Residue %-4s entity_type=%d het_flag=%c\n",
-                    residue.name.c_str(),
-                    static_cast<int>(residue.entity_type),
-                    residue.het_flag ? residue.het_flag : ' '
-                );
+
+            // Apply this rule only to the final polymer residue and
+            // only when both terminal oxygen names are present.
+            bool hasOT1 = false;
+            bool hasOT2 = false;
+
+            if (&residue == lastPolymerResidue)
+            {
+                for (const auto& atom : residue.atoms)
+                {
+                    if (atom.name == "OT1") hasOT1 = true;
+                    if (atom.name == "OT2") hasOT2 = true;
+                }
+            }
+
+            const bool hasTerminalOxygenPair = hasOT1 && hasOT2;
+
             for (const auto& atom : residue.atoms)
             {
                 const std::string atomName = atom.name;
 
-                std::string atomType;
+                const unsigned int atomicNumber =
+                    atom.element.atomic_number();
 
-            if (isPolymer)
+                if (atomicNumber == 0)
                 {
-                    if (proteinAtomTypes.contains(residueName, atomName))
-                    {
-                        atomType =
-                            proteinAtomTypes.lookup(
-                                residueName,
-                                atomName
-                            );
-                    }
-                    else if (atomName == "OXT")
-                    {
-                        // Legitimate C-terminal atom.
-                        // Leave atomType empty so scattering uses elemental FF.
-                    }
-                    else
-                    {
-                        throw std::runtime_error(
-                            "Unknown polymer atom: " +
-                            residueName + " " +
-                            atomName
-                        );
-                    }
+                    printf(
+                        "Skipping atom with unknown element: %s %s\n",
+                        residueName.c_str(),
+                        atomName.c_str());
+                    continue;
                 }
 
-                // For non-polymer atoms atomType deliberately remains empty.
-                //
-                // Their elemental identity comes directly from Gemmi:
-                //
-                //     atom.element.atomic_number()
-                //
-                // This handles arbitrary ligand naming conventions such as:
-                //
-                //     MYR: C1, C2, O1, ...
-                //     9AZ: C1, C2, N7, O18, ...
-                //
-                // without needing ligand-specific atom-name tables.
+                if (!includeHydrogens && atomicNumber == 1)
+                    continue;
+
+                const uint32_t zIndex =
+                    static_cast<uint32_t>(atomicNumber - 1);
+
+                std::string atomType;
+
+                // Special case: terminal carboxyl oxygen pair.
+                // Both oxygens use the existing O(resonance) type.
+                if (hasTerminalOxygenPair &&
+                    (atomName == "OT1" || atomName == "OT2"))
+                {
+                    atomType = "O(resonance)";
+                }
+                // Otherwise retain the existing residue/atom lookup.
+                else if (atomicNumber != 1 &&
+                         proteinAtomTypes.contains(
+                             residueName, atomName))
+                {
+                    atomType = proteinAtomTypes.lookup(
+                        residueName, atomName);
+                }
 
                 atoms.push_back({
                     static_cast<float>(atom.pos.x),
                     static_cast<float>(atom.pos.y),
                     static_cast<float>(atom.pos.z),
-
-                    static_cast<uint32_t>(
-                        atom.element.atomic_number() - 1
-                    ),
-
+                    zIndex,
                     residueName,
                     atomName,
                     atomType
@@ -153,6 +152,8 @@ static void extract_structure(
     }
 }
 
+
+
 std::vector<AtomData>
 AtomExtractor::extract_atoms_from_string(
     const std::string& contents,
@@ -161,9 +162,11 @@ AtomExtractor::extract_atoms_from_string(
 {
     gemmi::Structure structure;
 
-
     try
     {
+        /*
+         * Determine the input format from the filename.
+         */
         if (ends_with(filename, ".pdb") ||
             ends_with(filename, ".ent"))
         {
@@ -174,18 +177,29 @@ AtomExtractor::extract_atoms_from_string(
         }
         else
         {
-            auto doc = gemmi::cif::read_string(contents);
+            /*
+             * Assume CIF/mmCIF for anything that isn't PDB/ENT.
+             */
+            auto doc =
+                gemmi::cif::read_string(contents);
 
-            printf("Number of CIF blocks: %zu\n", doc.blocks.size());
+            printf(
+                "Number of CIF blocks: %zu\n",
+                doc.blocks.size());
 
-            structure = gemmi::make_structure(std::move(doc));
+            structure =
+                gemmi::make_structure(std::move(doc));
 
-            printf("Structure created successfully\n");
+            printf(
+                "Structure created successfully\n");
         }
     }
     catch (const std::exception& e)
     {
-        printf("Gemmi exception: %s\n", e.what());
+        printf(
+            "Gemmi exception: %s\n",
+            e.what());
+
         return {};
     }
 
@@ -193,6 +207,14 @@ AtomExtractor::extract_atoms_from_string(
     std::vector<AtomData> atoms;
 
 
+    /*
+     * Extract atoms from every model.
+     *
+     * NOTE:
+     * For an ensemble/NMR structure this will currently concatenate
+     * every model. If you later want one model only, this should be
+     * changed.
+     */
     for (const auto& model : structure.models)
     {
         extract_structure(
@@ -202,9 +224,36 @@ AtomExtractor::extract_atoms_from_string(
         );
     }
 
+    // Diagnostic: identify heavy atoms without a PEPSI unified type.
+    std::map<std::string, size_t> unmappedHeavyAtoms;
 
+    for (const auto& atom : atoms)
+    {
+        if (atom.atomType.empty())
+        {
+            const std::string key =
+                atom.residueName + ":" + atom.atomName;
+
+            ++unmappedHeavyAtoms[key];
+        }
+    }
+
+    std::printf(
+            "Heavy atoms without a PEPSI unified type: %zu unique names\n",
+            unmappedHeavyAtoms.size()
+        );
+
+        for (const auto& entry : unmappedHeavyAtoms)
+        {
+            std::printf(
+                "  %s: %zu atoms\n",
+                entry.first.c_str(),
+                entry.second
+            );
+        }
     return atoms;
 }
+
 
 std::string atom_summary_from_string(
     const std::string& contents,

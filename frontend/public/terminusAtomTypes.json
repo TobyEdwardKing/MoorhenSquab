@@ -1,0 +1,22 @@
+{
+  "N_TERMINUS": {
+    "N": {
+      "type": null,
+      "status": "needs_validation"
+    }
+  },
+  "C_TERMINUS": {
+    "OXT": {
+      "type": null,
+      "status": "needs_validation"
+    },
+    "OT1": {
+      "type": null,
+      "status": "needs_validation"
+    },
+    "OT2": {
+      "type": null,
+      "status": "needs_validation"
+    }
+  }
+}

@@ -29,22 +29,7 @@ double FormFactor::evaluate(double q) const
     return result;
 }
 
-double FormFactor::excluded_amplitude(double q) const
-{
-    const double qr =
-        q * std::cbrt(
-            (3.0 * excluded_volume) /
-            (4.0 * M_PI)
-        );
 
-    if (std::abs(qr) < 1e-8)
-        return excluded_volume;
-
-    return excluded_volume *
-           3.0 *
-           (std::sin(qr) - qr * std::cos(qr)) /
-           (qr * qr * qr);
-}
 
 bool FormFactorTable::load_element_table(
     const std::string& jsonContents)
@@ -73,7 +58,7 @@ bool FormFactorTable::load_element_table(
                 continue;
             }
         }
-        if (value.size() != 14)
+        if (value.size() != 15)
         {
             std::cerr
                 << "Skipping invalid entry: "
@@ -127,14 +112,20 @@ bool FormFactorTable::load_element_table(
             value[13].is_number()
                 ? value[13].get<double>()
                 : 0.0;
-                
-        ff.excluded_volume =
-            (4.0 / 3.0) *
-            M_PI *
-            std::pow(ff.atomic_radius, 3.0);
+        // Elemental excluded-volume parameters.
+        //
+
+        ff.excl_radius =
+            ff.atomic_radius;
+
+        ff.excl_volume =
+            value[14].is_number()
+            ? value[14].get<double>()
+            : 0.0;
+
 
         // IMPORTANT:
-        // your vector index is Z-1
+        //  vector index is Z-1
         int index =
             ff.atomic_number - 1;
 
@@ -294,6 +285,20 @@ bool FormFactorTable::load_atomtype_table(
             ff.b[i] = value["b"][i].get<double>();
 
         ff.c = value["c"].get<double>();
+
+        if (!value.contains("excl_radius") ||
+            !value.contains("excl_volume"))
+        {
+            throw std::runtime_error(
+                "Missing excluded-volume parameters for atom type: "
+                + atomType);
+        }
+
+        ff.excl_radius =
+            value["excl_radius"].get<double>();
+
+        ff.excl_volume =
+            value["excl_volume"].get<double>();
 
         atomtype_table_[atomType] = ff;
     }

@@ -5,129 +5,227 @@
 #include <stdexcept>
 #include "scatteringModel.hpp"
 
+// void DebyeCalculator::prepare_buffers(
+//     const std::vector<AtomData>& atoms,
+//     const FormFactorTable& table,
+//     double q)
+// {
+//     positions.clear();
+//     amplitudes.clear();
+
+//     positions.reserve((atoms.size() + shellScatterers.size()) * 3);
+//     amplitudes.reserve(atoms.size() + shellScatterers.size());
+//     //
+//     // Compute amplitudes ONCE
+//     //
+
+//     ScatteringModel model;
+
+//     model.compute_amplitudes(
+//         atoms,
+//         table,
+//         q
+//     );
+
+
+//     const auto& atomAmplitudes = model.amplitudes();
+
+
+//     shellScatterers =
+//         model.shell_scatterers();
+
+//     //
+//     // Fill buffers
+//     //
+
+//     // Add atomic scatterers
+
+//     for (size_t i = 0; i < atoms.size(); ++i)
+//     {
+//         positions.push_back(atoms[i].x);
+//         positions.push_back(atoms[i].y);
+//         positions.push_back(atoms[i].z);
+
+//         amplitudes.push_back(
+//             static_cast<float>(
+//                 atomAmplitudes[i]
+//             )
+//         );
+//     }
+
+
+//     // Add hydration scatterers
+
+//     for (const auto& shell : shellScatterers)
+//     {
+//         positions.push_back(shell.x);
+//         positions.push_back(shell.y);
+//         positions.push_back(shell.z);
+
+//         amplitudes.push_back(
+//             static_cast<float>(
+//                 shell.amplitude
+//             )
+//         );
+//     }
+
+    
+//     static bool printed = false;
+//     double amplitudeSum = 0.0;
+
+//     for (float a : amplitudes)
+//     {
+//         amplitudeSum += a;
+//     }
+
+//     std::cout
+//         << "Sum amplitudes = "
+//         << amplitudeSum
+//         << "\n";
+
+//     std::cout
+//         << "Expected I(0) = "
+//         << amplitudeSum * amplitudeSum
+//         << "\n";
+
+
+//     if (!printed)
+//     {
+//         std::cout
+//             << "\n===== GPU Debye preparation =====\n";
+
+//         std::cout
+//             << "Atomic scatterers: "
+//             << atoms.size()
+//             << "\n";
+
+//         std::cout
+//             << "Hydration scatterers: "
+//             << shellScatterers.size()
+//             << "\n";
+
+//         std::cout
+//             << "GPU positions: "
+//             << positions.size()
+//             << " floats\n";
+
+//         std::cout
+//             << "GPU amplitudes: "
+//             << amplitudes.size()
+//             << "\n";
+
+//         if (!amplitudes.empty())
+//         {
+//             std::cout
+//                 << "First amplitude: "
+//                 << amplitudes[0]
+//                 << "\n";
+//         }
+
+//         std::cout
+//             << "================================\n";
+
+//         printed = true;
+//     }
+// }
+
+
 void DebyeCalculator::prepare_buffers(
     const std::vector<AtomData>& atoms,
     const FormFactorTable& table,
-    double q)
+    const std::vector<float>& qValues)
 {
     positions.clear();
     amplitudes.clear();
 
-    positions.reserve((atoms.size() + shellScatterers.size()) * 3);
-    amplitudes.reserve(atoms.size() + shellScatterers.size());
+    // ------------------------------------------------------------
+    // Positions are independent of q.
+    // ------------------------------------------------------------
+
+    positions.reserve(atoms.size() * 3);
+
+    for (const auto& atom : atoms) {
+
+        positions.push_back(
+            static_cast<float>(atom.x)
+        );
+
+        positions.push_back(
+            static_cast<float>(atom.y)
+        );
+
+        positions.push_back(
+            static_cast<float>(atom.z)
+        );
+    }
+
+
+    // ------------------------------------------------------------
+    // Calculate scattering amplitudes separately for every q.
     //
-    // Compute amplitudes ONCE
+    // Layout:
     //
+    // amplitudes[qIndex * atomCount + atomIndex]
+    // ------------------------------------------------------------
+
+    amplitudes.reserve(
+        qValues.size() * atoms.size()
+    );
 
     ScatteringModel model;
 
-    model.compute_amplitudes(
-        atoms,
-        table,
-        q
-    );
+    for (size_t qIndex = 0; qIndex < qValues.size(); ++qIndex) {
 
+        const double q =
+            static_cast<double>(qValues[qIndex]);
 
-    const auto& atomAmplitudes = model.amplitudes();
-
-
-    shellScatterers =
-        model.shell_scatterers();
-
-    //
-    // Fill buffers
-    //
-
-    // Add atomic scatterers
-
-    for (size_t i = 0; i < atoms.size(); ++i)
-    {
-        positions.push_back(atoms[i].x);
-        positions.push_back(atoms[i].y);
-        positions.push_back(atoms[i].z);
-
-        amplitudes.push_back(
-            static_cast<float>(
-                atomAmplitudes[i]
-            )
+        model.compute_amplitudes(
+            atoms,
+            table,
+            q
         );
-    }
 
+        const auto& atomAmplitudes =
+            model.amplitudes();
 
-    // Add hydration scatterers
+        if (atomAmplitudes.size() != atoms.size()) {
 
-    for (const auto& shell : shellScatterers)
-    {
-        positions.push_back(shell.x);
-        positions.push_back(shell.y);
-        positions.push_back(shell.z);
-
-        amplitudes.push_back(
-            static_cast<float>(
-                shell.amplitude
-            )
-        );
-    }
-
-    
-    static bool printed = false;
-    double amplitudeSum = 0.0;
-
-    for (float a : amplitudes)
-    {
-        amplitudeSum += a;
-    }
-
-    std::cout
-        << "Sum amplitudes = "
-        << amplitudeSum
-        << "\n";
-
-    std::cout
-        << "Expected I(0) = "
-        << amplitudeSum * amplitudeSum
-        << "\n";
-
-
-    if (!printed)
-    {
-        std::cout
-            << "\n===== GPU Debye preparation =====\n";
-
-        std::cout
-            << "Atomic scatterers: "
-            << atoms.size()
-            << "\n";
-
-        std::cout
-            << "Hydration scatterers: "
-            << shellScatterers.size()
-            << "\n";
-
-        std::cout
-            << "GPU positions: "
-            << positions.size()
-            << " floats\n";
-
-        std::cout
-            << "GPU amplitudes: "
-            << amplitudes.size()
-            << "\n";
-
-        if (!amplitudes.empty())
-        {
-            std::cout
-                << "First amplitude: "
-                << amplitudes[0]
-                << "\n";
+            throw std::runtime_error(
+                "ScatteringModel returned an unexpected "
+                "number of amplitudes."
+            );
         }
 
-        std::cout
-            << "================================\n";
+        for (const double amplitude : atomAmplitudes) {
 
-        printed = true;
+            amplitudes.push_back(
+                static_cast<float>(amplitude)
+            );
+        }
     }
+
+
+    std::cout
+        << "Protein atoms: "
+        << atoms.size()
+        << "\n";
+
+    std::cout
+        << "q values: "
+        << qValues.size()
+        << "\n";
+
+    std::cout
+        << "GPU scatterers: "
+        << atoms.size()
+        << "\n";
+
+    std::cout
+        << "GPU amplitudes: "
+        << amplitudes.size()
+        << "\n";
 }
+
 // These two functions are the WASM -> JavaScript boundary.
 // They return copies that Emscripten can safely expose.
 

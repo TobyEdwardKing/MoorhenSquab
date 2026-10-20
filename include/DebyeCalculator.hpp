@@ -4,23 +4,13 @@
 
 #include "atomExtractor.hpp"
 #include "formFactor.hpp"
-
 #include "scatteringModel.hpp"
 
 class DebyeCalculator
 {
 public:
 
-    // Generate CPU SAXS curve
-    // void compute_curve(
-    //     const std::vector<AtomData>& atoms,
-    //     const FormFactorTable& formFactors,
-    //     double qMin,
-    //     double qMax,
-    //     double qStep);
-
-
-    // Prepare contiguous arrays for GPU upload.
+    // Generate q-dependent scattering amplitudes for GPU use.
     //
     // positions:
     // [
@@ -29,16 +19,25 @@ public:
     //   ...
     // ]
     //
-    // formFactors:
+    // amplitudes:
     // [
-    //   f0,
-    //   f1,
+    //   q0_atom0,
+    //   q0_atom1,
+    //   ...
+    //   q0_atomN,
+    //   q1_atom0,
+    //   q1_atom1,
     //   ...
     // ]
+    //
+    // In other words:
+    //
+    // amplitudes[qIndex * atomCount + atomIndex]
+    //
     void prepare_buffers(
         const std::vector<AtomData>& atoms,
         const FormFactorTable& table,
-        double q);
+        const std::vector<float>& qValues);
 
 
     // CPU curve access
@@ -50,12 +49,8 @@ public:
 
 
     // WebGPU data export.
-    //
-    // These return copies that Emscripten can transfer
-    // safely into JavaScript.
     std::vector<float> get_positions() const;
 
-    // std::vector<float> get_form_factors() const;
     std::vector<float> get_amplitudes() const;
 
 
@@ -67,12 +62,11 @@ private:
 
     // CPU-generated SAXS curve
     std::vector<double> qValues;
-
     std::vector<double> intensities;
 
 
     // GPU upload buffers
-    //
+
     // positions:
     // [
     //   x0,y0,z0,
@@ -82,32 +76,21 @@ private:
     std::vector<float> positions;
 
 
-    // form factors:
+    // q-dependent amplitudes:
+    //
     // [
-    //   f0,
-    //   f1,
+    //   q0_atom0,
+    //   q0_atom1,
+    //   ...
+    //   q1_atom0,
+    //   q1_atom1,
     //   ...
     // ]
-    // std::vector<float> formFactors;
+    //
+    // Indexed as:
+    //
+    // amplitudes[qIndex * atomCount + atomIndex]
     std::vector<float> amplitudes;
+
     std::vector<ShellScatterer> shellScatterers;
-    
-    // Single-q Debye calculation
-    // double calculate_point(
-    //     const std::vector<AtomData>& atoms,
-    //     const FormFactorTable& formFactors,
-    //     double q) const;
-
-    // double calculate_shell_shell(
-    //     const std::vector<ShellScatterer>& shell,
-    //     double q
-    // ) const;
-
-    // double calculate_atom_shell(
-    // const std::vector<AtomData>& atoms,
-    // const std::vector<ShellScatterer>& shell,
-    // const std::vector<double>& amplitudes,
-    // double q
-    // ) const;
-    
 };

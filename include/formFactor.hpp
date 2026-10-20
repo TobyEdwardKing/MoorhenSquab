@@ -18,12 +18,11 @@ struct FormFactor
     int atomic_number = 0;
     double atomic_radius = 0.0;
 
-    // Excluded solvent volume (Å³)
-    double excluded_volume = 0.0;
+    // PEPSI/Svergun excluded-volume parameters
+    double excl_radius = 0.0;
+    double excl_volume = 0.0;
 
     double evaluate(double q) const;
-
-    double excluded_amplitude(double q) const;
 };
 
 class FormFactorTable

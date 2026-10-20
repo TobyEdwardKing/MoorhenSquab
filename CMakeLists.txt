@@ -63,6 +63,7 @@ add_executable(
     src/scatteringModel.cpp
     src/hydrationShell.cpp
     src/proteinAtomType.cpp
+    src/excludedVolumeModel.cpp
 )
 
 
