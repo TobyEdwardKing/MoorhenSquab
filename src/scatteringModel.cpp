@@ -599,11 +599,16 @@ double ScatteringModel::combined_intensity_from_multipoles(
     const std::vector<
         std::vector<std::complex<double>>
     >& excludedVolumeCoefficients,
-    double solventDensity
+    double solventDensity,
+    const std::vector<
+        std::vector<std::complex<double>>
+    >& hydrationCoefficients,
+    double shellContrast
 ) const
 {
     if (qIndex >= multipoles_.size() ||
-        qIndex >= excludedVolumeCoefficients.size())
+        qIndex >= excludedVolumeCoefficients.size() ||
+        qIndex >= hydrationCoefficients.size())
     {
         throw std::out_of_range(
             "Combined intensity q index out of range"
@@ -617,21 +622,67 @@ double ScatteringModel::combined_intensity_from_multipoles(
         );
     }
 
-    const auto& atomic =
-        multipoles_[qIndex];
+    const auto& atomic = multipoles_[qIndex];
+    const auto& excluded = excludedVolumeCoefficients[qIndex];
+    const auto& hydration = hydrationCoefficients[qIndex];
 
-    const auto& excluded =
-        excludedVolumeCoefficients[qIndex];
+    const std::size_t requiredCoefficients =
+        static_cast<std::size_t>((maxL + 1) * (maxL + 1));
 
-    const int requiredCoefficients =
-        (maxL + 1) * (maxL + 1);
-
-    if (atomic.size() < static_cast<size_t>(requiredCoefficients) ||
-        excluded.size() < static_cast<size_t>(requiredCoefficients))
+    if (atomic.size() < requiredCoefficients ||
+        excluded.size() < requiredCoefficients ||
+        hydration.size() < requiredCoefficients)
     {
         throw std::runtime_error(
             "Insufficient multipole coefficients for combined intensity"
         );
+    }
+
+    if (qIndex == 0)
+    {
+        double atomicNorm = 0.0;
+        double excludedNorm = 0.0;
+        double hydrationNorm = 0.0;
+        double combinedNorm = 0.0;
+
+        for (int l = 0; l <= maxL; ++l)
+        {
+            for (int m = -l; m <= l; ++m)
+            {
+                const std::size_t index =
+                    static_cast<std::size_t>(lm_index(l, m));
+
+                const auto a = atomic[index];
+                const auto v = solventDensity * excluded[index];
+                const auto b = shellContrast * hydration[index];
+                const auto total = a - v + b;
+                if (l == 0 && m == 0)
+                {
+                    std::cout << "A00: " << a
+                            << "\nV00 (scaled): " << v
+                            << "\nB00 (scaled): " << b
+                            << "\nTotal C00: " << total
+                            << '\n';
+                }
+                atomicNorm += std::norm(a);
+                excludedNorm += std::norm(v);
+                hydrationNorm += std::norm(b);
+                combinedNorm += std::norm(total);
+            }
+        }
+
+        std::cout << "\n=== COEFFICIENT-LEVEL DIAGNOSTIC ===\n";
+        std::cout << "qIndex: " << qIndex << '\n';
+        std::cout << "maxL: " << maxL << '\n';
+        std::cout << "Atomic intensity: "
+                << atomicNorm / (4.0 * PI) << '\n';
+        std::cout << "Scaled excluded-volume intensity: "
+                << excludedNorm / (4.0 * PI) << '\n';
+        std::cout << "Scaled hydration intensity: "
+                << hydrationNorm / (4.0 * PI) << '\n';
+        std::cout << "Combined intensity: "
+                << combinedNorm / (4.0 * PI) << '\n';
+        std::cout << "===================================\n";
     }
 
     double intensity = 0.0;
@@ -640,17 +691,19 @@ double ScatteringModel::combined_intensity_from_multipoles(
     {
         for (int m = -l; m <= l; ++m)
         {
-            const int index = lm_index(l, m);
+            const std::size_t index =
+                static_cast<std::size_t>(lm_index(l, m));
 
             const std::complex<double> total =
-                atomic[index] -
-                solventDensity * excluded[index];
+                atomic[index]
+                - solventDensity * excluded[index]
+                + shellContrast * hydration[index];
 
             intensity += std::norm(total);
         }
     }
 
-    return intensity / (4.0 * M_PI);
+    return intensity / (4.0 * PI);
 }
 
 

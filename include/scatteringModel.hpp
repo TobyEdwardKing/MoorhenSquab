@@ -60,14 +60,18 @@ public:
     const std::vector<
         std::vector<std::complex<double>>
     >& multipoles() const;
-    
+
     double combined_intensity_from_multipoles(
         size_t qIndex,
         int maxL,
         const std::vector<
             std::vector<std::complex<double>>
         >& excludedVolumeCoefficients,
-        double solventDensity
+        double solventDensity,
+        const std::vector<
+            std::vector<std::complex<double>>
+        >& hydrationCoefficients,
+        double shellContrast
     ) const;
 private:
 

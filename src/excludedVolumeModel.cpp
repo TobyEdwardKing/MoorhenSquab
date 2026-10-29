@@ -292,6 +292,7 @@ int ExcludedVolumeModel::lm_index(
  * V_i is in Angstrom^3.
  * q is in Angstrom^-1.
  */
+
 double ExcludedVolumeModel::dummy_form_factor(
     double q,
     double volume)
@@ -299,13 +300,10 @@ double ExcludedVolumeModel::dummy_form_factor(
     if (volume <= 0.0)
         return 0.0;
 
-    return
-        volume *
-        std::exp(
-            -std::pow(volume, 2.0 / 3.0)
-            * q * q
-            / (4.0 * PI)
-        );
+    return volume * std::exp(
+        -std::pow(volume, 2.0 / 3.0) * q * q
+        / (4.0 * PI)
+    );
 }
 
 
@@ -316,7 +314,8 @@ void ExcludedVolumeModel::compute_coefficients(
     const std::vector<AtomData>& atoms,
     const FormFactorTable& table,
     const std::vector<double>& qGrid,
-    int L)
+    int L,
+    double radiusAdjustmentFraction)
 {
     std::cout << ">>> ENTERED compute_coefficients <<<\n";
 
@@ -468,15 +467,15 @@ void ExcludedVolumeModel::compute_coefficients(
                 continue;
             }
 
+            const double G =
+                1.0 + 3.0 * radiusAdjustmentFraction;
+
             const double volume =
-                ff->excl_volume;
+                ff->excl_volume * G;
 
             if (volume <= 0.0)
                 continue;
 
-            /*
-             * Gaussian dummy-atom form factor.
-             */
             const double g =
                 dummy_form_factor(
                     q,
@@ -615,115 +614,79 @@ void ExcludedVolumeModel::compute_coefficients(
         << "\n";
 
 
-    // ------------------------------------------------------------
-    // Diagnostic: q = 0 excluded-volume normalisation
-    //
-    // Expected:
-    //
-    //     C_00(0) = sqrt(4*pi) * sum_i V_i
-    //
-    // Centring does not affect this q=0 check.
-    // ------------------------------------------------------------
+        // ------------------------------------------------------------
+        // Diagnostic: q = 0 excluded-volume normalisation
+        //
+        // Expected:
+        //     C_00(0) = sqrt(4*pi) * sum_i V_i
+        //
+        // Do not compare a nonzero-q coefficient against this value.
+        // ------------------------------------------------------------
 
-    if (!qGrid.empty())
-    {
-        // Find the q point closest to zero.
-        size_t qZeroIndex = 0;
+        constexpr double Q_ZERO_TOLERANCE = 1.0e-12;
 
-        double minAbsQ =
-            std::abs(qGrid[0]);
+        size_t qZeroIndex = qGrid.size();
 
-        for (size_t iq = 1; iq < qGrid.size(); ++iq)
+        for (size_t iq = 0; iq < qGrid.size(); ++iq)
         {
-            const double absQ =
-                std::abs(qGrid[iq]);
-
-            if (absQ < minAbsQ)
+            if (std::abs(qGrid[iq]) <= Q_ZERO_TOLERANCE)
             {
-                minAbsQ = absQ;
                 qZeroIndex = iq;
+                break;
             }
         }
 
-        // Calculate total excluded volume directly.
-        double totalVolume = 0.0;
-
-        for (const auto& atom : atoms)
+        if (qZeroIndex < qGrid.size())
         {
-            /*
-             * Use exactly the same parameter-selection
-             * logic as the main calculation:
-             *
-             * PEPSI atom type first,
-             * elemental fallback second.
-             */
-            const FormFactor* ff = nullptr;
+            double totalVolume = 0.0;
 
-            if (!atom.atomType.empty() &&
-                table.contains_atom_type(atom.atomType))
+            for (const auto& atom : atoms)
             {
-                ff =
-                    &table.get_atom_type(
-                        atom.atomType
-                    );
-            }
-            else if (table.contains_element(atom.Z))
-            {
-                ff =
-                    &table.get_element(atom.Z);
-            }
-            else
-            {
-                continue;
+                const FormFactor* ff = nullptr;
+
+                if (!atom.atomType.empty() &&
+                    table.contains_atom_type(atom.atomType))
+                {
+                    ff = &table.get_atom_type(atom.atomType);
+                }
+                else if (table.contains_element(atom.Z))
+                {
+                    ff = &table.get_element(atom.Z);
+                }
+
+                if (ff != nullptr && ff->excl_volume > 0.0)
+                    totalVolume += ff->excl_volume;
             }
 
-            if (ff->excl_volume > 0.0)
-                totalVolume += ff->excl_volume;
+            const double expectedC00 =
+                std::sqrt(4.0 * PI) * totalVolume;
+
+            const auto actualC00 =
+                coefficients_[qZeroIndex][lm_index(0, 0)];
+
+            const double error =
+                std::abs(actualC00.real() - expectedC00);
+
+            const double relativeError =
+                expectedC00 > 1.0e-12
+                    ? error / expectedC00
+                    : 0.0;
+
+            std::cout
+                << "\nExcluded-volume q=0 normalisation check:\n"
+                << "  q used: " << qGrid[qZeroIndex] << " A^-1\n"
+                << "  Total excluded volume: " << totalVolume << " A^3\n"
+                << "  Expected C_00: " << expectedC00 << "\n"
+                << "  Actual C_00:   " << actualC00 << "\n"
+                << "  Absolute error: " << error << "\n"
+                << "  Relative error: " << relativeError << "\n";
         }
-
-        const double expectedC00 =
-            std::sqrt(4.0 * PI) *
-            totalVolume;
-
-        const int c00Index =
-            lm_index(0, 0);
-
-        const auto actualC00 =
-            coefficients_[qZeroIndex][c00Index];
-
-        const double error =
-            std::abs(
-                actualC00.real() -
-                expectedC00
-            );
-
-        const double relativeError =
-            (std::abs(expectedC00) > 1e-12)
-            ? error / std::abs(expectedC00)
-            : 0.0;
-
-        std::cout
-            << "\n"
-            << "Excluded-volume q=0 diagnostic:\n"
-            << "  q used: "
-            << qGrid[qZeroIndex]
-            << " A^-1\n"
-            << "  Total excluded volume: "
-            << totalVolume
-            << " A^3\n"
-            << "  Expected C_00: "
-            << expectedC00
-            << "\n"
-            << "  Actual C_00:   "
-            << actualC00
-            << "\n"
-            << "  Absolute error: "
-            << error
-            << "\n"
-            << "  Relative error: "
-            << relativeError
-            << "\n";
-    }
+        else
+        {
+            std::cout
+                << "\nExcluded-volume q=0 normalisation check skipped: "
+                << "the supplied q grid does not contain q=0.\n";
+        }
 }
 
 

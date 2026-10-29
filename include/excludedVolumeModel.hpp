@@ -29,8 +29,10 @@ public:
         const std::vector<AtomData>& atoms,
         const FormFactorTable& table,
         const std::vector<double>& qGrid,
-        int L
+        int L,
+        double radiusAdjustmentFraction = 0.0
     );
+    
 
     //
     // Access calculated coefficients.

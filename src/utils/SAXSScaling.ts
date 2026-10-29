@@ -227,14 +227,14 @@ export function fitSAXSScale(
     /*
      * Print the first 10 points for debugging.
      */
-    console.table(
-        experimental.q.slice(0, 10).map((q, i) => ({
-            q,
-            Iexp: experimental.intensity[i],
-            scaledIcalc: scaledIntensities[i],
-            difference: difference[i],
-        }))
-    );
+    // console.table(
+    //     experimental.q.slice(0, 10).map((q, i) => ({
+    //         q,
+    //         Iexp: experimental.intensity[i],
+    //         scaledIcalc: scaledIntensities[i],
+    //         difference: difference[i],
+    //     }))
+    // );
 
     return {
 
