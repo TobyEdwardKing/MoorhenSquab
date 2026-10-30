@@ -19,6 +19,8 @@ export interface SAXSFitResult {
     qValues: number[];
 
     difference: number[];
+    
+    offset?: number;
 }
 
 
@@ -254,3 +256,189 @@ export function fitSAXSScale(
         difference
     };
 }
+
+
+export function fitSAXSScaleWithOffset(
+    experimental: SAXSProfile,
+    calculated: SAXSCurve
+): SAXSFitResult {
+
+    if (
+        experimental.q.length !== calculated.qValues.length
+    ) {
+        throw new Error(
+            "Experimental and calculated curves have different numbers of points."
+        );
+    }
+
+    const n = experimental.q.length;
+
+    if (n < 2) {
+        throw new Error(
+            "At least two points are required to fit scale and offset."
+        );
+    }
+
+    let sumTheorOverSigma2 = 0;
+    let sumTheorSquaredOverSigma2 = 0;
+
+    let validPoints = 0;
+
+    // Calculate b from SI equation (5).
+    for (let i = 0; i < n; i++) {
+        const Iexp = experimental.intensity[i];
+        const Itheor = calculated.intensities[i];
+        const sigma = experimental.sigma[i];
+
+        if (
+            !Number.isFinite(Iexp) ||
+            !Number.isFinite(Itheor) ||
+            !Number.isFinite(sigma) ||
+            sigma <= 0
+        ) {
+            continue;
+        }
+
+        const weight = 1 / (sigma * sigma);
+
+        sumTheorOverSigma2 += Itheor * weight;
+        sumTheorSquaredOverSigma2 +=
+            Itheor * Itheor * weight;
+
+        validPoints++;
+    }
+
+    if (
+        validPoints < 2 ||
+        sumTheorSquaredOverSigma2 === 0
+    ) {
+        throw new Error(
+            "Cannot determine scale and offset from the available data."
+        );
+    }
+
+    const b =
+        sumTheorOverSigma2 /
+        sumTheorSquaredOverSigma2;
+
+    // Calculate the ordinary scale factor c.
+    const scaleResult = fitSAXSScale(
+        experimental,
+        calculated
+    );
+
+    const c = scaleResult.scale;
+
+    // Calculate the optimal offset kappa using the SI expression.
+    let offsetNumerator = 0;
+    let offsetDenominator = 0;
+
+    for (let i = 0; i < n; i++) {
+        const Iexp = experimental.intensity[i];
+        const Itheor = calculated.intensities[i];
+        const sigma = experimental.sigma[i];
+
+        if (
+            !Number.isFinite(Iexp) ||
+            !Number.isFinite(Itheor) ||
+            !Number.isFinite(sigma) ||
+            sigma <= 0
+        ) {
+            continue;
+        }
+
+        const weight = 1 / (sigma * sigma);
+
+        const residualWithoutOffset =
+            Iexp - c * Itheor;
+
+        const offsetTerm =
+            1 - b * Itheor;
+
+        offsetNumerator +=
+            residualWithoutOffset *
+            offsetTerm *
+            weight;
+
+        offsetDenominator +=
+            offsetTerm *
+            offsetTerm *
+            weight;
+    }
+
+    if (
+        !Number.isFinite(offsetDenominator) ||
+        offsetDenominator <= 0
+    ) {
+        throw new Error(
+            "Cannot determine the optimal background offset."
+        );
+    }
+
+    const offset =
+        offsetNumerator / offsetDenominator;
+
+    // Calculate the offset-adjusted scale c(kappa).
+    const adjustedScale =
+        c + offset * b;
+
+    // Calculate the fitted curve and goodness of fit.
+    const scaledIntensities: number[] = [];
+    const residuals: number[] = [];
+    const difference = new Array<number>(n);
+
+    let chiSquared = 0;
+    let fittedPoints = 0;
+
+    for (let i = 0; i < n; i++) {
+        const Iexp = experimental.intensity[i];
+        const Itheor = calculated.intensities[i];
+        const sigma = experimental.sigma[i];
+
+        if (
+            !Number.isFinite(Iexp) ||
+            !Number.isFinite(Itheor) ||
+            !Number.isFinite(sigma) ||
+            sigma <= 0
+        ) {
+            scaledIntensities.push(NaN);
+            residuals.push(NaN);
+            difference[i] = NaN;
+            continue;
+        }
+
+        const fitted =
+            adjustedScale * Itheor - offset;
+
+        // SI residual: (Iexp + kappa - c(kappa)*Itheor) / sigma.
+        const residual =
+            (Iexp + offset - adjustedScale * Itheor) /
+            sigma;
+
+        scaledIntensities.push(fitted);
+        difference[i] = Iexp - fitted;
+        residuals.push(residual);
+
+        chiSquared += residual * residual;
+        fittedPoints++;
+    }
+
+    // Match the SI's stated normalisation: N - 1.
+    const reducedChiSquared =
+        fittedPoints > 1
+            ? chiSquared / (fittedPoints - 1)
+            : NaN;
+
+    return {
+        scale: adjustedScale,
+        offset,
+        chiSquared,
+        reducedChiSquared,
+        residuals,
+        scaledIntensities,
+        qValues: [...experimental.q],
+        difference
+    };
+}
+
+

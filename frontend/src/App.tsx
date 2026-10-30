@@ -6,6 +6,7 @@ import { parseSAXSProfile } from "../../src/utils/SAXSProfileParser";
 import type { SAXSProfile } from "../../src/types/SAXSProfile";
 import {
     fitSAXSScale,
+    fitSAXSScaleWithOffset,
     type SAXSFitResult,
     type SAXSCurve
 } from "../../src/utils/SAXSScaling";
@@ -34,6 +35,9 @@ function App() {
         radiusAdjustmentFraction: number;
         shellContrast: number;
     } | null>(null);
+
+    const [includeExperimentalData, setIncludeExperimentalData] = useState(true);
+    const [fitBackgroundOffset, setFitBackgroundOffset] = useState(false);
     // ---------------------------------------------------------
     // INITIALISE WASM + GPU
     // ---------------------------------------------------------
@@ -135,7 +139,20 @@ function App() {
             console.error("Failed to load SAXS profile:", error);
         }
     }
+    function getActiveQValues(): number[] {
+        if (includeExperimentalData) {
+            return saxsProfile ? [...saxsProfile.q] : [];
+        }
 
+        const count = 500;
+        const qMin = 0.01;
+        const qMax = 0.5;
+
+        return Array.from(
+            { length: count },
+            (_, i) => qMin + i * (qMax - qMin) / (count - 1)
+        );
+    }
     // ---------------------------------------------------------
     // PREPARE WASM + GPU BUFFERS
     //
@@ -149,7 +166,6 @@ function App() {
             !gpu ||
             !structureText ||
             !structureFilename ||
-            !saxsProfile ||
             !elementJSON ||
             !saxsAtomTypeJSON ||
             !residueAtomTypeJSON
@@ -166,16 +182,22 @@ function App() {
             return true;
         }
 
+        const activeQValues = getActiveQValues();
+
+        if (activeQValues.length === 0) {
+            console.error("No q-values available for calculation.");
+            return false;
+        }
+
         setIsPreparing(true);
 
         const qValues = new module.FloatVector();
-
         try {
             console.log("===== PREPARING SAXS GPU BUFFERS =====");
 
-            for (const q of saxsProfile.q) {
-                qValues.push_back(q);
-            }
+        for (const q of activeQValues) {
+            qValues.push_back(q);
+        }
 
             console.log("Preparing amplitudes for", qValues.size(), "q values");
 
@@ -205,7 +227,7 @@ function App() {
                 }
 
                 const expectedAmplitudeCount =
-                    saxsProfile.q.length * (positions.length / 3);
+                    activeQValues.length * (positions.length / 3);
 
                 if (amplitudes.length !== expectedAmplitudeCount) {
                     throw new Error(
@@ -221,7 +243,7 @@ function App() {
 
                 console.log("===== GPU BUFFERS READY =====");
                 console.log("Atoms:", positions.length / 3);
-                console.log("q values:", saxsProfile.q.length);
+                console.log("q values:", activeQValues.length);
                 console.log("Amplitudes:", amplitudes.length);
 
                 return true;
@@ -242,16 +264,16 @@ function App() {
     // MULTIPOLE L VALIDATION
     // ---------------------------------------------------------
 
-    function validateMultipoleL(debyeIntensities: number[]) {
+    function validateMultipoleL(
+    debyeIntensities: number[],
+    qValues: number[]
+    ) {
         if (!module) {
             console.error("WASM module is not ready.");
             return;
         }
 
-        if (!saxsProfile) {
-            console.error("No SAXS profile loaded.");
-            return;
-        }
+
 
         const testLValues = [2, 4, 6, 8, 10, 12];
 
@@ -314,7 +336,7 @@ function App() {
                         ? Math.sqrt(sumSquaredRelativeError / validPoints)
                         : 0;
 
-                const qAtMaxError = saxsProfile.q[maxErrorIndex];
+                const qAtMaxError = qValues[maxErrorIndex];
                 const coefficientCount = (L + 1) * (L + 1);
 
                 console.log(
@@ -333,381 +355,411 @@ function App() {
     // CALCULATE SAXS CURVE
     // ---------------------------------------------------------
 
-    async function calculateSAXSCurve() {
-        if (!gpu) {
-            console.error("GPU is not ready.");
-            return;
-        }
 
-        if (!module) {
-            console.error("WASM module is not ready.");
-            return;
-        }
+async function calculateSAXSCurve() {
+    if (!gpu) {
+        console.error("GPU is not ready.");
+        return;
+    }
 
+    if (!module) {
+        console.error("WASM module is not ready.");
+        return;
+    }
+
+    if (includeExperimentalData && !saxsProfile) {
+        console.error("No SAXS profile loaded.");
+        return;
+    }
+
+    const activeQValues = getActiveQValues();
+
+    if (activeQValues.length === 0) {
+        console.error("No q-values available.");
+        return;
+    }
+
+    const MULTIPOLE_L = module.get_multipole_L();
+    const SOLVENT_DENSITY = 0.334;
+    const SHELL_CONTRAST = 0.0167;
+
+    // Select the fitting method once, so comparisons and grid search
+    // use the same fitting approach.
+    const fitCurve = (curve: SAXSCurve): SAXSFitResult => {
         if (!saxsProfile) {
-            console.error("No SAXS profile loaded.");
-            return;
+            throw new Error("Cannot fit without an experimental profile.");
         }
 
-        const MULTIPOLE_L = module.get_multipole_L();        
-        const SOLVENT_DENSITY = 0.334;
-        const SHELL_CONTRAST = 0.0167;
+        return fitBackgroundOffset
+            ? fitSAXSScaleWithOffset(saxsProfile, curve)
+            : fitSAXSScale(saxsProfile, curve);
+    };
+
+    try {
+        // -------------------------------------------------
+        // 1. GPU DEBYE REFERENCE
+        // -------------------------------------------------
+
+        const qValues = new Float32Array(activeQValues);
+
+        console.log("Calculating curve on active q grid:");
+        console.log("q points:", qValues.length);
+        console.log(
+            "q range:",
+            qValues[0],
+            "to",
+            qValues[qValues.length - 1]
+        );
+
+        const batchSize = 100;
+        const allQValues: number[] = [];
+        const allIntensities: number[] = [];
+
+        const numberOfBatches = Math.ceil(qValues.length / batchSize);
+
+        console.log("GPU batch size:", batchSize);
+        console.log("Number of GPU batches:", numberOfBatches);
+
+        for (let start = 0; start < qValues.length; start += batchSize) {
+            const end = Math.min(start + batchSize, qValues.length);
+            const batch = qValues.slice(start, end);
+            const batchNumber = Math.floor(start / batchSize) + 1;
+
+            console.log(
+                `Calculating GPU batch ${batchNumber}/${numberOfBatches}: ` +
+                `q values ${start}–${end - 1}`
+            );
+
+            const batchCurve = await gpu.calculateCurve(batch, start);
+
+            allQValues.push(...batchCurve.qValues);
+            allIntensities.push(...batchCurve.intensities);
+
+            console.log(`GPU batch ${batchNumber}/${numberOfBatches} complete`);
+        }
+
+        const gpuCurve: SAXSCurve = {
+            qValues: allQValues,
+            intensities: allIntensities
+        };
+
+        // -------------------------------------------------
+        // 2. WASM MULTIPOLE INTENSITIES
+        // -------------------------------------------------
+
+        const atomicVector =
+            module.get_multipole_intensities(MULTIPOLE_L);
+
+        const combinedZeroVector =
+            module.get_combined_multipole_intensities(0.0);
+
+        const combinedSolventVector =
+            module.get_combined_multipole_intensities(SOLVENT_DENSITY);
+
+        const hydrationCombinedVector =
+            module.get_hydration_combined_multipole_intensities(
+                SOLVENT_DENSITY,
+                SHELL_CONTRAST,
+                0.0
+            );
 
         try {
-            const qValues = new Float32Array(saxsProfile.q);
+            const atomic = Array.from(
+                { length: atomicVector.size() },
+                (_, i) => atomicVector.get(i)
+            );
 
-            console.log("Calculating curve on experimental q grid:");
-            console.log(qValues.length, "q values");
-            console.log("q range:", qValues[0], "to", qValues[qValues.length - 1]);
+            const combinedZero = Array.from(
+                { length: combinedZeroVector.size() },
+                (_, i) => combinedZeroVector.get(i)
+            );
 
-            const batchSize = 100;
-            const allQValues: number[] = [];
-            const allIntensities: number[] = [];
+            const combinedSolvent = Array.from(
+                { length: combinedSolventVector.size() },
+                (_, i) => combinedSolventVector.get(i)
+            );
 
-            const numberOfBatches = Math.ceil(qValues.length / batchSize);
+            const hydrationCombined = Array.from(
+                { length: hydrationCombinedVector.size() },
+                (_, i) => hydrationCombinedVector.get(i)
+            );
 
-            console.log("GPU batch size:", batchSize);
-            console.log("Number of GPU batches:", numberOfBatches);
+            const expectedLength = activeQValues.length;
 
-            for (let start = 0; start < qValues.length; start += batchSize) {
-                const end = Math.min(start + batchSize, qValues.length);
-                const batch = qValues.slice(start, end);
-                const batchNumber = Math.floor(start / batchSize) + 1;
+            const lengths = [
+                atomic.length,
+                combinedZero.length,
+                combinedSolvent.length,
+                hydrationCombined.length,
+                gpuCurve.intensities.length
+            ];
 
-                console.log(
-                    `Calculating GPU batch ${batchNumber}/${numberOfBatches}: ` +
-                    `q values ${start}–${end - 1}`
+            if (lengths.some(length => length !== expectedLength)) {
+                throw new Error(
+                    `Intensity array size mismatch. Expected ${expectedLength}; ` +
+                    `got atomic=${atomic.length}, ` +
+                    `zero-density=${combinedZero.length}, ` +
+                    `excluded-volume=${combinedSolvent.length}, ` +
+                    `hydration=${hydrationCombined.length}, ` +
+                    `GPU=${gpuCurve.intensities.length}.`
                 );
-
-                const batchCurve = await gpu.calculateCurve(batch, start);
-
-                allQValues.push(...batchCurve.qValues);
-                allIntensities.push(...batchCurve.intensities);
-
-                console.log(`GPU batch ${batchNumber}/${numberOfBatches} complete`);
             }
 
-            const gpuCurve: SAXSCurve = {
-                qValues: allQValues,
-                intensities: allIntensities
+            const atomicCurve: SAXSCurve = {
+                qValues: [...activeQValues],
+                intensities: atomic
+            };
+
+            const excludedVolumeCurve: SAXSCurve = {
+                qValues: [...activeQValues],
+                intensities: combinedSolvent
+            };
+
+            const hydrationCurve: SAXSCurve = {
+                qValues: [...activeQValues],
+                intensities: hydrationCombined
             };
 
             // -------------------------------------------------
-            // COMPARE ATOMIC, EXCLUDED-VOLUME AND HYDRATION MODELS
+            // 3. MULTIPOLE VALIDATION
             // -------------------------------------------------
 
-            const atomicVector =
-                module.get_multipole_intensities(MULTIPOLE_L);
+            validateMultipoleL(gpuCurve.intensities, activeQValues);
 
-            const combinedZeroVector =
-                module.get_combined_multipole_intensities(0.0);
+            console.log("===== COMPLETE GPU CURVE =====");
+            console.log("Calculated points:", gpuCurve.qValues.length);
+            console.log("Expected points:", expectedLength);
+            console.log("==============================");
 
-            const combinedSolventVector =
-                module.get_combined_multipole_intensities(SOLVENT_DENSITY);
+            // -------------------------------------------------
+            // 4. EXCLUDED-VOLUME SANITY CHECK
+            // -------------------------------------------------
 
-            const hydrationCombinedVector =
-                module.get_hydration_combined_multipole_intensities(
-                    SOLVENT_DENSITY,
-                    SHELL_CONTRAST,
-                    0.0
-                );
+            let maxZeroDifference = 0;
 
-            let combinedHydrationCurve: SAXSCurve | null = null;
+            for (let i = 0; i < atomic.length; i++) {
+                const difference =
+                    Math.abs(combinedZero[i] - atomic[i]) /
+                    Math.max(Math.abs(atomic[i]), 1e-30);
+
+                maxZeroDifference = Math.max(maxZeroDifference, difference);
+            }
+
+            console.log("Excluded-volume sanity check:");
+            console.log(
+                "  rho=0 maximum relative difference from atomic-only:",
+                maxZeroDifference
+            );
+
+            // -------------------------------------------------
+            // 5. THEORETICAL-ONLY PATH
+            // -------------------------------------------------
+
+            if (!includeExperimentalData || !saxsProfile) {
+                setCalculatedCurve(hydrationCurve);
+                setFitResult(null);
+                setBestParameters(null);
+
+                console.log("===== THEORETICAL SAXS CALCULATION COMPLETE =====");
+                console.log("Production model: atomic + excluded volume + hydration");
+                console.log("Multipole L:", MULTIPOLE_L);
+                console.log("Solvent density:", SOLVENT_DENSITY);
+                console.log("Shell contrast:", SHELL_CONTRAST);
+                console.log("Calculated points:", hydrationCurve.qValues.length);
+                console.log("No experimental fitting performed.");
+                console.log("==================================================");
+
+                return;
+            }
+
+            // -------------------------------------------------
+            // 6. EXPERIMENTAL MODEL-FIT COMPARISONS
+            // -------------------------------------------------
+
+            const gpuFit = fitCurve(gpuCurve);
+            const atomicFit = fitCurve(atomicCurve);
+            const excludedVolumeFit = fitCurve(excludedVolumeCurve);
+            const hydrationFit = fitCurve(hydrationCurve);
+
+            console.log("========== SAXS MODEL FIT COMPARISON ==========");
+            console.log("Background offset fitting:", fitBackgroundOffset);
+
+            console.log("GPU Debye reference:");
+            console.log("  Scale:", gpuFit.scale);
+            console.log("  Reduced chi-squared:", gpuFit.reducedChiSquared);
+
+            console.log(`Atomic multipoles, L=${MULTIPOLE_L}:`);
+            console.log("  Scale:", atomicFit.scale);
+            console.log("  Reduced chi-squared:", atomicFit.reducedChiSquared);
+
+            console.log(
+                `Atomic + excluded volume, rho=${SOLVENT_DENSITY}:`
+            );
+            console.log("  Scale:", excludedVolumeFit.scale);
+            console.log(
+                "  Reduced chi-squared:",
+                excludedVolumeFit.reducedChiSquared
+            );
+
+            console.log(
+                `Atomic + excluded volume + hydration, ` +
+                `shell contrast=${SHELL_CONTRAST}:`
+            );
+            console.log("  Scale:", hydrationFit.scale);
+            console.log(
+                "  Reduced chi-squared:",
+                hydrationFit.reducedChiSquared
+            );
+
+            console.log("First five intensity comparisons:");
+
+            for (let i = 0; i < Math.min(5, atomic.length); i++) {
+                console.log({
+                    q: activeQValues[i],
+                    atomic: atomic[i],
+                    excludedVolume: combinedSolvent[i],
+                    hydration: hydrationCombined[i],
+                    gpuDebye: gpuCurve.intensities[i]
+                });
+            }
+
+            console.log("================================================");
+
+            // -------------------------------------------------
+            // 7. GRID SEARCH: RADIUS ADJUSTMENT + SHELL CONTRAST
+            // -------------------------------------------------
+
+            const GRID_SIZE = 100;
+
+            const radiusAdjustmentValues = Array.from(
+                { length: GRID_SIZE },
+                (_, i) => -0.05 + i * (0.10 / (GRID_SIZE - 1))
+            );
+
+            const shellContrastValues = Array.from(
+                { length: GRID_SIZE },
+                (_, i) => i * (0.0334 / (GRID_SIZE - 1))
+            );
+
+            let bestReducedChiSquared = Infinity;
+            let evaluatedPairs = 0;
+
             let bestHydrationCurve: SAXSCurve | null = null;
             let bestHydrationFit: SAXSFitResult | null = null;
 
             let bestRadiusAdjustmentFraction = 0;
             let bestShellContrast = 0;
-            try {
-                const atomic = Array.from(
-                    { length: atomicVector.size() },
-                    (_, i) => atomicVector.get(i)
-                );
 
-                const combinedZero = Array.from(
-                    { length: combinedZeroVector.size() },
-                    (_, i) => combinedZeroVector.get(i)
-                );
+            console.log("========== TWO-PARAMETER GRID SEARCH ==========");
+            console.log("Radius candidates:", radiusAdjustmentValues.length);
+            console.log("Contrast candidates:", shellContrastValues.length);
+            console.log(
+                "Total candidate pairs:",
+                radiusAdjustmentValues.length * shellContrastValues.length
+            );
+            console.log("Background offset fitting:", fitBackgroundOffset);
 
-                const combinedSolvent = Array.from(
-                    { length: combinedSolventVector.size() },
-                    (_, i) => combinedSolventVector.get(i)
-                );
+            for (const radiusAdjustmentFraction of radiusAdjustmentValues) {
+                for (const shellContrast of shellContrastValues) {
+                    const candidateVector =
+                        module.get_hydration_combined_multipole_intensities(
+                            SOLVENT_DENSITY,
+                            shellContrast,
+                            radiusAdjustmentFraction
+                        );
 
-                const hydrationCombined = Array.from(
-                    { length: hydrationCombinedVector.size() },
-                    (_, i) => hydrationCombinedVector.get(i)
-                );
+                    try {
+                        const intensities = Array.from(
+                            { length: candidateVector.size() },
+                            (_, i) => candidateVector.get(i)
+                        );
 
-                const expectedLength = saxsProfile.q.length;
-
-                const lengths = [
-                    atomic.length,
-                    combinedZero.length,
-                    combinedSolvent.length,
-                    hydrationCombined.length,
-                    gpuCurve.intensities.length
-                ];
-
-                if (lengths.some(length => length !== expectedLength)) {
-                    throw new Error(
-                        `Intensity array size mismatch. Expected ${expectedLength}; ` +
-                        `got atomic=${atomic.length}, ` +
-                        `zero-density=${combinedZero.length}, ` +
-                        `excluded-volume=${combinedSolvent.length}, ` +
-                        `hydration=${hydrationCombined.length}, ` +
-                        `GPU=${gpuCurve.intensities.length}.`
-                    );
-                }
-
-                const atomicCurve: SAXSCurve = {
-                    qValues: [...saxsProfile.q],
-                    intensities: atomic
-                };
-
-                const excludedVolumeCurve: SAXSCurve = {
-                    qValues: [...saxsProfile.q],
-                    intensities: combinedSolvent
-                };
-
-                const hydrationCurve: SAXSCurve = {
-                    qValues: [...saxsProfile.q],
-                    intensities: hydrationCombined
-                };
-
-                combinedHydrationCurve = hydrationCurve;
-
-                const atomicFit = fitSAXSScale(saxsProfile, atomicCurve);
-                const excludedVolumeFit = fitSAXSScale(
-                    saxsProfile,
-                    excludedVolumeCurve
-                );
-                const hydrationFit = fitSAXSScale(saxsProfile, hydrationCurve);
-
-                console.log("========== SAXS MODEL FIT COMPARISON ==========");
-
-                console.log("GPU Debye reference:");
-                console.log("  Scale:", fitResult?.scale);
-                console.log("  Reduced chi-squared:", fitResult?.reducedChiSquared);
-
-                console.log(`Atomic multipoles, L=${MULTIPOLE_L}:`);
-                console.log("  Scale:", atomicFit.scale);
-                console.log("  Reduced chi-squared:", atomicFit.reducedChiSquared);
-
-                console.log(
-                    `Atomic + excluded volume, L=${MULTIPOLE_L}, ` +
-                    `rho=${SOLVENT_DENSITY}:`
-                );
-                console.log("  Scale:", excludedVolumeFit.scale);
-                console.log(
-                    "  Reduced chi-squared:",
-                    excludedVolumeFit.reducedChiSquared
-                );
-
-                console.log(
-                    `Atomic + excluded volume + hydration, L=${MULTIPOLE_L}, ` +
-                    `rho=${SOLVENT_DENSITY}, shell contrast=${SHELL_CONTRAST}:`
-                );
-                console.log("  Scale:", hydrationFit.scale);
-                console.log("  Reduced chi-squared:", hydrationFit.reducedChiSquared);
-
-                console.log("First five intensity comparisons:");
-
-                for (let i = 0; i < Math.min(5, atomic.length); i++) {
-                    console.log({
-                        q: saxsProfile.q[i],
-                        atomic: atomic[i],
-                        excludedVolume: combinedSolvent[i],
-                        hydration: hydrationCombined[i],
-                        gpuDebye: gpuCurve.intensities[i]
-                    });
-                }
-
-                console.log("================================================");
-
- 
-                // -------------------------------------------------
-                // EXHAUSTIVE GRID SEARCH: RADIUS ADJUSTMENT + SHELL CONTRAST
-                // -------------------------------------------------
-
-                const GRID_SIZE = 100;
-
-                const radiusAdjustmentValues = Array.from(
-                    { length: GRID_SIZE },
-                    (_, i) => -0.05 + i * (0.10 / (GRID_SIZE - 1))
-                );
-
-                const shellContrastValues = Array.from(
-                    { length: GRID_SIZE },
-                    (_, i) => i * (0.0334 / (GRID_SIZE - 1))
-                );
-
-                let bestReducedChiSquared = Infinity;
-                let evaluatedPairs = 0;
-
-                console.log("========== TWO-PARAMETER GRID SEARCH ==========");
-                console.log("Radius adjustment fractions:", radiusAdjustmentValues);
-                console.log("Shell contrast range: 0 to 0.0334 e/A^3");
-                console.log("Radius candidates:", radiusAdjustmentValues.length);
-                console.log("Contrast candidates:", shellContrastValues.length);
-                console.log(
-                    "Total candidate pairs:",
-                    radiusAdjustmentValues.length * shellContrastValues.length
-                );
-
-                for (const radiusAdjustmentFraction of radiusAdjustmentValues) {
-                    for (const shellContrast of shellContrastValues) {
-                        const candidateVector =
-                            module.get_hydration_combined_multipole_intensities(
-                                SOLVENT_DENSITY,
-                                shellContrast,
-                                radiusAdjustmentFraction
+                        if (intensities.length !== expectedLength) {
+                            throw new Error(
+                                `Grid candidate returned ${intensities.length} ` +
+                                `intensities; expected ${expectedLength}.`
                             );
-
-                        try {
-                            const intensities = Array.from(
-                                { length: candidateVector.size() },
-                                (_, i) => candidateVector.get(i)
-                            );
-
-                            if (intensities.length !== saxsProfile.q.length) {
-                                throw new Error(
-                                    `Grid candidate returned ${intensities.length} ` +
-                                    `intensities; expected ${saxsProfile.q.length}.`
-                                );
-                            }
-
-                            const candidateCurve: SAXSCurve = {
-                                qValues: [...saxsProfile.q],
-                                intensities
-                            };
-
-                            // fitSAXSScale optimises the multiplicative scale
-                            // for this candidate before comparing its reduced chi-squared.
-                            const candidateFit = fitSAXSScale(
-                                saxsProfile,
-                                candidateCurve
-                            );
-
-                            evaluatedPairs++;
-
-                            if (
-                                Number.isFinite(candidateFit.reducedChiSquared) &&
-                                candidateFit.reducedChiSquared < bestReducedChiSquared
-                            ) {
-                                bestReducedChiSquared =
-                                    candidateFit.reducedChiSquared;
-
-                                bestRadiusAdjustmentFraction =
-                                    radiusAdjustmentFraction;
-
-                                bestShellContrast = shellContrast;
-
-                                bestHydrationCurve = candidateCurve;
-                                bestHydrationFit = candidateFit;
-                            }
-                        } finally {
-                            candidateVector.delete();
                         }
+
+                        const candidateCurve: SAXSCurve = {
+                            qValues: [...activeQValues],
+                            intensities
+                        };
+
+                        const candidateFit = fitCurve(candidateCurve);
+
+                        evaluatedPairs++;
+
+                        if (
+                            Number.isFinite(candidateFit.reducedChiSquared) &&
+                            candidateFit.reducedChiSquared < bestReducedChiSquared
+                        ) {
+                            bestReducedChiSquared =
+                                candidateFit.reducedChiSquared;
+
+                            bestRadiusAdjustmentFraction =
+                                radiusAdjustmentFraction;
+
+                            bestShellContrast = shellContrast;
+
+                            bestHydrationCurve = candidateCurve;
+                            bestHydrationFit = candidateFit;
+                        }
+                    } finally {
+                        candidateVector.delete();
                     }
                 }
-
-                if (!bestHydrationCurve || !bestHydrationFit) {
-                    throw new Error(
-                        "Grid search failed to produce a valid candidate fit."
-                    );
-                }
-
-                combinedHydrationCurve = bestHydrationCurve;
-
-                setBestParameters({
-                    radiusAdjustmentFraction: bestRadiusAdjustmentFraction,
-                    shellContrast: bestShellContrast
-                });
-
-                console.log("Grid search complete.");
-                console.log("Evaluated parameter pairs:", evaluatedPairs);
-                console.log("Best radius adjustment fraction:",
-                    bestRadiusAdjustmentFraction);
-                console.log("Best shell contrast (e/A^3):", bestShellContrast);
-                console.log("Best fitted scale:", bestHydrationFit.scale);
-                console.log(
-                    "Best chi-squared:",
-                    bestHydrationFit.chiSquared
-                );
-                console.log(
-                    "Best reduced chi-squared:",
-                    bestHydrationFit.reducedChiSquared
-                );
-                console.log("===============================================");
-
-
-                // Verify rho=0 removes the excluded-volume term.
-                let maxZeroDifference = 0;
-
-                for (let i = 0; i < atomic.length; i++) {
-                    const difference =
-                        Math.abs(combinedZero[i] - atomic[i]) /
-                        Math.max(Math.abs(atomic[i]), 1e-30);
-
-                    maxZeroDifference = Math.max(maxZeroDifference, difference);
-                }
-
-                console.log("Excluded-volume sanity check:");
-                console.log(
-                    "  rho=0 maximum relative difference from atomic-only:",
-                    maxZeroDifference
-                );
-            } finally {
-                atomicVector.delete();
-                combinedZeroVector.delete();
-                combinedSolventVector.delete();
-                hydrationCombinedVector.delete();
             }
 
-            validateMultipoleL(gpuCurve.intensities);
-
-            console.log("===== COMPLETE GPU CURVE =====");
-            console.log("Calculated points:", gpuCurve.qValues.length);
-            console.log("Expected points:", saxsProfile.q.length);
-            console.log("==============================");
-
-            if (!combinedHydrationCurve) {
-                throw new Error("Combined hydration curve was not generated.");
-            }
-
-            const productionCurve = combinedHydrationCurve;
-            setCalculatedCurve(productionCurve);
-
-            const result = fitSAXSScale(saxsProfile, productionCurve);
-            setFitResult(result);
-
-            console.log("===== SAXS SCALE FIT =====");
-            console.log("Scale:", result.scale);
-            console.log("Chi-squared:", result.chiSquared);
-            console.log("Reduced chi-squared:", result.reducedChiSquared);
-            console.log("==========================");
-
-            for (
-                let i = 0;
-                i < Math.min(10, productionCurve.qValues.length);
-                i++
-            ) {
-                console.log(
-                    "Production q =",
-                    productionCurve.qValues[i],
-                    "I =",
-                    productionCurve.intensities[i]
+            if (!bestHydrationCurve || !bestHydrationFit) {
+                throw new Error(
+                    "Grid search failed to produce a valid candidate fit."
                 );
             }
+
+            // -------------------------------------------------
+            // 8. STORE BEST-FIT RESULTS
+            // -------------------------------------------------
+
+            setCalculatedCurve(bestHydrationCurve);
+            setFitResult(bestHydrationFit);
+
+            setBestParameters({
+                radiusAdjustmentFraction: bestRadiusAdjustmentFraction,
+                shellContrast: bestShellContrast
+            });
+
+            console.log("========== GRID SEARCH COMPLETE ==========");
+            console.log("Evaluated parameter pairs:", evaluatedPairs);
+            console.log(
+                "Best radius adjustment fraction:",
+                bestRadiusAdjustmentFraction
+            );
+            console.log("Best shell contrast:", bestShellContrast);
+            console.log("Best fitted scale:", bestHydrationFit.scale);
+            console.log("Best chi-squared:", bestHydrationFit.chiSquared);
+            console.log(
+                "Best reduced chi-squared:",
+                bestHydrationFit.reducedChiSquared
+            );
+            console.log("===========================================");
 
             console.log("Production SAXS curve calculation finished.");
-            console.log("Production model: atomic + excluded volume + hydration");
-            console.log("Shell contrast:", SHELL_CONTRAST);
-        } catch (error) {
-            console.error("Failed to calculate SAXS curve:", error);
+            console.log(
+                "Production model: atomic + excluded volume + hydration"
+            );
+            console.log("Shell contrast:", bestShellContrast);
+        } finally {
+            atomicVector.delete();
+            combinedZeroVector.delete();
+            combinedSolventVector.delete();
+            hydrationCombinedVector.delete();
         }
+    } catch (error) {
+        console.error("Failed to calculate SAXS curve:", error);
     }
+}
+
 
     // ---------------------------------------------------------
     // EXPORT
@@ -834,29 +886,93 @@ function App() {
                 onChange={handleFile}
             />
 
+
             <h2>Experimental SAXS profile</h2>
 
-            <input
-                type="file"
-                accept=".dat,.txt,.csv"
-                onChange={handleSaxsFile}
-            />
+            <label
+                style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "0.5rem",
+                    marginBottom: "1rem"
+                }}
+            >
+                <input
+                    type="checkbox"
+                    checked={includeExperimentalData}
+                    onChange={(event) => {
+                        setIncludeExperimentalData(event.target.checked);
+                        setIsPrepared(false);
+                        setCalculatedCurve(null);
+                        setFitResult(null);
+                        setBestParameters(null);
+                    }}
+                />
+                <span>
+                    <strong>Include experimental data</strong>
+                    <br />
+                    <small>
+                        Load a .dat file, compare calculated and experimental curves,
+                        and optimise the model parameters against the experimental data.
+                    </small>
+                </span>
+            </label>
 
-            {saxsProfile && (
-                <div>
-                    <h3>SAXS profile loaded</h3>
+            {includeExperimentalData && (
+                <>
+                    <input
+                        type="file"
+                        accept=".dat,.txt,.csv"
+                        onChange={handleSaxsFile}
+                    />
 
-                    <p>Data points: {saxsProfile.q.length}</p>
+                    {saxsProfile && (
+                        <div>
+                            <h3>SAXS profile loaded</h3>
 
-                    <p>
-                        q range: {saxsProfile.q[0]} to{" "}
-                        {saxsProfile.q[saxsProfile.q.length - 1]} Å⁻¹
-                    </p>
-                </div>
+                            <p>Data points: {saxsProfile.q.length}</p>
+
+                            <p>
+                                q range: {saxsProfile.q[0]} to{" "}
+                                {saxsProfile.q[saxsProfile.q.length - 1]} Å⁻¹
+                            </p>
+                        </div>
+                    )}
+
+                    <label
+                        style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: "0.5rem",
+                            marginTop: "1rem"
+                        }}
+                    >
+                        <input
+                            type="checkbox"
+                            checked={fitBackgroundOffset}
+                            onChange={(event) => {
+                                setFitBackgroundOffset(event.target.checked);
+                                setCalculatedCurve(null);
+                                setFitResult(null);
+                                setBestParameters(null);
+                            }}
+                        />
+                        <span>
+                            <strong>Fit background offset (κ)</strong>
+                            <br />
+                            <small>
+                                Allow a constant intensity offset when fitting the
+                                calculated curve to experimental data.
+                            </small>
+                        </span>
+                    </label>
+                </>
             )}
 
-            {gpu && saxsProfile && structureText && (
-                <button
+
+            {gpu && structureText &&
+                (!includeExperimentalData || saxsProfile) && (
+                        <button
                     onClick={async () => {
                         if (isPreparing) return;
 
