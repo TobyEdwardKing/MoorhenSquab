@@ -1,0 +1,52 @@
+{
+  "name": "moorhen-squab",
+  "version": "0.1.0",
+  "description": "SAXS profile calculation from macromolecular structures (C++/WebAssembly + WebGPU), packaged for use as a Moorhen plugin",
+  "author": "Toby E King",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TobyEdwardKing/MoorhenSquab.git",
+    "directory": "npm"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./wasm/saxs.js": {
+      "types": "./dist/wasm/saxs.d.ts",
+      "import": "./dist/wasm/saxs.js"
+    },
+    "./wasm/saxs.wasm": "./dist/wasm/saxs.wasm",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build:wasm": "bash scripts/build-wasm.sh",
+    "build:ts": "node scripts/prepare-sources.mjs && tsc -p tsconfig.json && node scripts/copy-wasm.mjs",
+    "build": "npm run build:wasm && npm run build:ts",
+    "typecheck": "node scripts/prepare-sources.mjs && tsc -p tsconfig.json --noEmit",
+    "test": "node test/smoke.mjs",
+    "pack:local": "npm run build:ts && npm test && npm pack"
+  },
+  "devDependencies": {
+    "@webgpu/types": "^0.1.60",
+    "typescript": "^5.9.3"
+  },
+  "keywords": [
+    "saxs",
+    "moorhen",
+    "webassembly",
+    "webgpu",
+    "structural-biology"
+  ]
+}
