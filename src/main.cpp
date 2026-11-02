@@ -216,15 +216,37 @@ int get_multipole_L()
 {
     return selectedMultipoleL;
 }
+
+
 void prepare_debye_gpu(
     const std::string& elementJson,
     const std::string& saxsAtomTypeJson,
     const std::string& residueAtomTypeJson,
     const std::string& contents,
     const std::string& filename,
-    const std::vector<float>& qValues)
+    const std::vector<float>& qValues,
+    bool debug)
 {
-    std::cout << "ENTERED prepare_debye_gpu\n";
+    using Clock = std::chrono::steady_clock;
+
+    auto reportStage = [](const char* stage, Clock::time_point start)
+    {
+        const double elapsedMs =
+            std::chrono::duration<double, std::milli>(
+                Clock::now() - start
+            ).count();
+
+        std::cout
+            << "[Timing] " << stage << ": "
+            << std::fixed << std::setprecision(2)
+            << elapsedMs << " ms\n";
+    };
+    
+    if (debug){
+        std::cout << "ENTERED prepare_debye_gpu\n";
+        std::cout << "Debug diagnostics: "
+                << (debug ? "enabled" : "disabled") << "\n";
+    }
 
     FormFactorTable table;
 
@@ -264,12 +286,14 @@ void prepare_debye_gpu(
      * Generate hydration-shell geometry before choosing L.
      */
     constexpr double HYDRATION_GRID_SPACING = 3.5;
+    const auto hydrationGeometryStart = Clock::now();
 
     hydrationPoints = hydrationShell.generate(
         app.atoms,
         table,
         HYDRATION_GRID_SPACING
     );
+    
 
     if (hydrationPoints.empty())
     {
@@ -324,38 +348,41 @@ void prepare_debye_gpu(
     );
 
     selectedMultipoleL = MULTIPOLE_L;
-
-    std::cout
-        << "\n===== HYDRATION SHELL GEOMETRY =====\n"
-        << "  Grid-cell width: "
-        << hydrationShell.grid_spacing() << " A\n"
-        << "  Shell thickness: "
-        << hydrationShell.shell_thickness() << " A\n"
-        << "  Shell points: " << hydrationPoints.size() << "\n"
-        << "  Represented shell volume: "
-        << hydrationVolume << " A^3\n"
-        << "  Shell Rg: " << hydrationRg << " A\n"
-        << "  q_max: " << qGrid.back() << " A^-1\n"
-        << "  Selected L: " << MULTIPOLE_L << "\n"
-        << "====================================\n";
-
+    reportStage("Hydration-shell setup", hydrationGeometryStart);    
+    if (debug) {
+        std::cout
+            << "\n===== HYDRATION SHELL GEOMETRY =====\n"
+            << "  Grid-cell width: "
+            << hydrationShell.grid_spacing() << " A\n"
+            << "  Shell thickness: "
+            << hydrationShell.shell_thickness() << " A\n"
+            << "  Shell points: " << hydrationPoints.size() << "\n"
+            << "  Represented shell volume: "
+            << hydrationVolume << " A^3\n"
+            << "  Shell Rg: " << hydrationRg << " A\n"
+            << "  q_max: " << qGrid.back() << " A^-1\n"
+            << "  Selected L: " << MULTIPOLE_L << "\n"
+            << "====================================\n";
+    }
     /*
      * Atomic multipole calculation.
      */
+     const auto atomicMultipolesStart = Clock::now();
     scatteringModel.compute_multipoles(
         app.atoms,
         table,
         qGrid,
         MULTIPOLE_L
     );
-
+    reportStage("Atomic multipoles", atomicMultipolesStart);
+    const auto excludedVolumeStart = Clock::now();
     excludedVolumeModel.compute_coefficients(
         app.atoms,
         table,
         qGrid,
         MULTIPOLE_L
     );
-
+    reportStage("Excluded-volume multipoles", excludedVolumeStart);
     std::cout
         << "Atomic multipoles calculated:\n"
         << "  Atoms: " << app.atoms.size() << "\n"
@@ -405,191 +432,195 @@ void prepare_debye_gpu(
     /*
      * q=0 excluded-volume normalisation diagnostic.
      */
-    const std::vector<double> testQ = {0.0};
-
-    ExcludedVolumeModel excludedVolumeZeroModel;
-
-    excludedVolumeZeroModel.compute_coefficients(
-        app.atoms,
-        table,
-        testQ,
-        EXCLUDED_VOLUME_L
-    );
-
-    const auto& zeroCoefficients =
-        excludedVolumeZeroModel.coefficients();
-
-    if (!zeroCoefficients.empty() &&
-        !zeroCoefficients.front().empty())
+     if (debug)
     {
-        const auto& c00 = zeroCoefficients.front()[0];
+        const std::vector<double> testQ = {0.0};
+
+        ExcludedVolumeModel excludedVolumeZeroModel;
+
+        excludedVolumeZeroModel.compute_coefficients(
+            app.atoms,
+            table,
+            testQ,
+            EXCLUDED_VOLUME_L
+        );
+
+        const auto& zeroCoefficients =
+            excludedVolumeZeroModel.coefficients();
+
+        if (!zeroCoefficients.empty() &&
+            !zeroCoefficients.front().empty())
+        {
+            const auto& c00 = zeroCoefficients.front()[0];
+
+            std::cout
+                << "Excluded-volume q=0 normalisation check:\n"
+                << "  C00: ("
+                << c00.real() << ", "
+                << c00.imag() << ")\n";
+        }
+
+        run_spherical_bessel_test();
+    
+
+        // Validate the 2L-sample interpolation against direct coefficient
+        // calculations at 16 q-values spanning the experimental range.
+        constexpr std::size_t VALIDATION_Q_COUNT = 16;
+
+        std::vector<double> validationQ(VALIDATION_Q_COUNT);
+
+        for (std::size_t i = 0; i < VALIDATION_Q_COUNT; ++i) {
+            const double t =
+                static_cast<double>(i) /
+                static_cast<double>(VALIDATION_Q_COUNT - 1);
+
+            validationQ[i] =
+                qGrid.front() + t * (qGrid.back() - qGrid.front());
+        }
+
+
+        // Existing 2L-sample interpolation.
+        const auto interpStart = Clock::now();
+
+        hydrationShell.compute_multipoles(
+            hydrationPoints,
+            table,
+            validationQ,
+            hydrationCentre,
+            MULTIPOLE_L,
+            true);
+
+        const auto interpolated = hydrationShell.coefficients();
+
+        const std::vector<std::vector<std::complex<double>>>
+            interpolatedCopy(interpolated);
+
+        const double interpMs =
+            std::chrono::duration<double, std::milli>(
+                Clock::now() - interpStart).count();
+
+        // Direct calculation at every validation q-value.
+        const auto directStart = Clock::now();
+        
+        hydrationShell.compute_multipoles(
+            hydrationPoints,
+            table,
+            validationQ,
+            hydrationCentre,
+            MULTIPOLE_L,
+            false);
+
+        const auto direct = hydrationShell.coefficients();
+
+        const std::vector<std::vector<std::complex<double>>>
+            directCopy(direct);
+
+        const double directMs =
+            std::chrono::duration<double, std::milli>(
+                Clock::now() - directStart).count();
+
+        // Compare all complex coefficients across all validation q-values.
+        double maxAbsError = 0.0;
+        double maxDirectMagnitude = 0.0;
+        long double sumErrorSquared = 0.0L;
+        long double sumDirectSquared = 0.0L;
+        std::size_t compared = 0;
+
+        for (std::size_t iq = 0; iq < validationQ.size(); ++iq) {
+            for (std::size_t lm = 0;
+                lm < directCopy[iq].size(); ++lm) {
+
+                const double error = std::abs(
+                    interpolatedCopy[iq][lm] - directCopy[iq][lm]);
+
+                const double reference =
+                    std::abs(directCopy[iq][lm]);
+
+                maxAbsError = std::max(maxAbsError, error);
+                maxDirectMagnitude =
+                    std::max(maxDirectMagnitude, reference);
+
+                sumErrorSquared +=
+                    static_cast<long double>(error) * error;
+
+                sumDirectSquared +=
+                    static_cast<long double>(reference) * reference;
+
+                ++compared;
+            }
+        }
+
+        const double maxRelativeError =
+            maxDirectMagnitude > 0.0
+                ? maxAbsError / maxDirectMagnitude
+                : maxAbsError;
+
+        const double rmsRelativeError =
+            sumDirectSquared > 0.0L
+                ? std::sqrt(
+                    static_cast<double>(
+                        sumErrorSquared / sumDirectSquared))
+                : std::sqrt(
+                    static_cast<double>(
+                        sumErrorSquared /
+                        std::max<std::size_t>(compared, 1)));
+
+        std::cout << std::fixed << std::setprecision(3)
+                << "[Hydration validation] L=" << MULTIPOLE_L
+                << ", q samples=" << VALIDATION_Q_COUNT
+                << ", coefficients=" << compared << '\n'
+                << "  Interpolated: " << interpMs << " ms\n"
+                << "  Direct:       " << directMs << " ms\n"
+                << std::scientific << std::setprecision(3)
+                << "  Max error / max direct magnitude: "
+                << maxRelativeError << '\n'
+                << "  Relative RMS coefficient error:   "
+                << rmsRelativeError << '\n';
+        
+
+        /*
+        * Independent q=0 hydration normalisation check.
+        *
+        * This checks the volume-weighted geometric coefficients.
+        * It does not validate the water form factor or the physical
+        * hydration contrast.
+        */
+        const std::vector<double> hydrationZeroQ = {0.0};
+
+        hydrationShell.compute_multipoles(
+            hydrationPoints,
+            table,
+            hydrationZeroQ,
+            hydrationCentre,
+            0
+        );
+
+        const auto& hydrationZeroCoefficients =
+            hydrationShell.coefficients();
+
+        const double expectedB00 =
+            std::sqrt(4.0 * 3.14159265358979323846) *
+            hydrationVolume;
+
+        const double actualB00 =
+            hydrationZeroCoefficients.at(0).at(0).real();
+
+        const double relativeError =
+            std::abs(actualB00 - expectedB00) /
+            std::max(std::abs(expectedB00), 1.0e-30);
 
         std::cout
-            << "Excluded-volume q=0 normalisation check:\n"
-            << "  C00: ("
-            << c00.real() << ", "
-            << c00.imag() << ")\n";
+            << "Hydration q=0 B00 check:\n"
+            << "  Expected: " << expectedB00 << "\n"
+            << "  Actual: " << actualB00 << "\n"
+            << "  Relative error: " << relativeError << '\n';
     }
-
-    run_spherical_bessel_test();
-
-    // Validate the 2L-sample interpolation against direct coefficient
-    // calculations at 16 q-values spanning the experimental range.
-    constexpr std::size_t VALIDATION_Q_COUNT = 16;
-
-    std::vector<double> validationQ(VALIDATION_Q_COUNT);
-
-    for (std::size_t i = 0; i < VALIDATION_Q_COUNT; ++i) {
-        const double t =
-            static_cast<double>(i) /
-            static_cast<double>(VALIDATION_Q_COUNT - 1);
-
-        validationQ[i] =
-            qGrid.front() + t * (qGrid.back() - qGrid.front());
-    }
-
-    using Clock = std::chrono::steady_clock;
-
-    // Existing 2L-sample interpolation.
-    const auto interpStart = Clock::now();
-
-    hydrationShell.compute_multipoles(
-        hydrationPoints,
-        table,
-        validationQ,
-        hydrationCentre,
-        MULTIPOLE_L,
-        true);
-
-    const auto interpolated = hydrationShell.coefficients();
-
-    const std::vector<std::vector<std::complex<double>>>
-        interpolatedCopy(interpolated);
-
-    const double interpMs =
-        std::chrono::duration<double, std::milli>(
-            Clock::now() - interpStart).count();
-
-    // Direct calculation at every validation q-value.
-    const auto directStart = Clock::now();
-
-    hydrationShell.compute_multipoles(
-        hydrationPoints,
-        table,
-        validationQ,
-        hydrationCentre,
-        MULTIPOLE_L,
-        false);
-
-    const auto direct = hydrationShell.coefficients();
-
-    const std::vector<std::vector<std::complex<double>>>
-        directCopy(direct);
-
-    const double directMs =
-        std::chrono::duration<double, std::milli>(
-            Clock::now() - directStart).count();
-
-    // Compare all complex coefficients across all validation q-values.
-    double maxAbsError = 0.0;
-    double maxDirectMagnitude = 0.0;
-    long double sumErrorSquared = 0.0L;
-    long double sumDirectSquared = 0.0L;
-    std::size_t compared = 0;
-
-    for (std::size_t iq = 0; iq < validationQ.size(); ++iq) {
-        for (std::size_t lm = 0;
-            lm < directCopy[iq].size(); ++lm) {
-
-            const double error = std::abs(
-                interpolatedCopy[iq][lm] - directCopy[iq][lm]);
-
-            const double reference =
-                std::abs(directCopy[iq][lm]);
-
-            maxAbsError = std::max(maxAbsError, error);
-            maxDirectMagnitude =
-                std::max(maxDirectMagnitude, reference);
-
-            sumErrorSquared +=
-                static_cast<long double>(error) * error;
-
-            sumDirectSquared +=
-                static_cast<long double>(reference) * reference;
-
-            ++compared;
-        }
-    }
-
-    const double maxRelativeError =
-        maxDirectMagnitude > 0.0
-            ? maxAbsError / maxDirectMagnitude
-            : maxAbsError;
-
-    const double rmsRelativeError =
-        sumDirectSquared > 0.0L
-            ? std::sqrt(
-                static_cast<double>(
-                    sumErrorSquared / sumDirectSquared))
-            : std::sqrt(
-                static_cast<double>(
-                    sumErrorSquared /
-                    std::max<std::size_t>(compared, 1)));
-
-    std::cout << std::fixed << std::setprecision(3)
-            << "[Hydration validation] L=" << MULTIPOLE_L
-            << ", q samples=" << VALIDATION_Q_COUNT
-            << ", coefficients=" << compared << '\n'
-            << "  Interpolated: " << interpMs << " ms\n"
-            << "  Direct:       " << directMs << " ms\n"
-            << std::scientific << std::setprecision(3)
-            << "  Max error / max direct magnitude: "
-            << maxRelativeError << '\n'
-            << "  Relative RMS coefficient error:   "
-            << rmsRelativeError << '\n';
-
-    /*
-     * Independent q=0 hydration normalisation check.
-     *
-     * This checks the volume-weighted geometric coefficients.
-     * It does not validate the water form factor or the physical
-     * hydration contrast.
-     */
-    const std::vector<double> hydrationZeroQ = {0.0};
-
-    hydrationShell.compute_multipoles(
-        hydrationPoints,
-        table,
-        hydrationZeroQ,
-        hydrationCentre,
-        0
-    );
-
-    const auto& hydrationZeroCoefficients =
-        hydrationShell.coefficients();
-
-    const double expectedB00 =
-        std::sqrt(4.0 * 3.14159265358979323846) *
-        hydrationVolume;
-
-    const double actualB00 =
-        hydrationZeroCoefficients.at(0).at(0).real();
-
-    const double relativeError =
-        std::abs(actualB00 - expectedB00) /
-        std::max(std::abs(expectedB00), 1.0e-30);
-
-    std::cout
-        << "Hydration q=0 B00 check:\n"
-        << "  Expected: " << expectedB00 << "\n"
-        << "  Actual: " << actualB00 << "\n"
-        << "  Relative error: " << relativeError << '\n';
-
     /*
      * Calculate hydration-shell multipoles on the full q-grid.
      * This must follow the q=0 diagnostic because that diagnostic
      * overwrites the shell's stored coefficients.
      */
+    const auto hydrationMultipolesStart = Clock::now();
     hydrationShell.compute_multipoles(
         hydrationPoints,
         table,
@@ -597,37 +628,41 @@ void prepare_debye_gpu(
         hydrationCentre,
         MULTIPOLE_L
     );
-
-    hydrationShell.validate_interpolation(
-        hydrationPoints,
-        qGrid,
-        hydrationCentre,
-        25
-    );
-
-    const double diagnosticSolventDensity = 0.334;
-
-    const std::vector<double> diagnosticShellContrasts = {
-        0.0, 0.005, 0.01, 0.015, 0.02, 0.025, 0.03
-    };
-
-    for (double contrast : diagnosticShellContrasts)
+    reportStage("Full-grid hydration multipoles", hydrationMultipolesStart);
+    if (debug)
     {
-        std::cout
-            << "\nValidating combined intensity interpolation"
-            << " for shell contrast = " << contrast << " e-/A^3\n";
-
-        hydrationShell.validate_combined_intensity_interpolation(
+        hydrationShell.validate_interpolation(
             hydrationPoints,
             qGrid,
             hydrationCentre,
-            scatteringModel.multipoles(),
-            excludedVolumeModel.coefficients(),
-            diagnosticSolventDensity,
-            contrast,
-            0.0, // radius adjustment fraction
             25
         );
+    
+
+        const double diagnosticSolventDensity = 0.334;
+
+        const std::vector<double> diagnosticShellContrasts = {
+            0.0, 0.005, 0.01, 0.015, 0.02, 0.025, 0.03
+        };
+
+        for (double contrast : diagnosticShellContrasts)
+        {
+            std::cout
+                << "\nValidating combined intensity interpolation"
+                << " for shell contrast = " << contrast << " e-/A^3\n";
+
+            hydrationShell.validate_combined_intensity_interpolation(
+                hydrationPoints,
+                qGrid,
+                hydrationCentre,
+                scatteringModel.multipoles(),
+                excludedVolumeModel.coefficients(),
+                diagnosticSolventDensity,
+                contrast,
+                0.0, // radius adjustment fraction
+                25
+            );
+        }
     }
 
     const auto& fullHydrationCoefficients =
@@ -668,11 +703,12 @@ void prepare_debye_gpu(
     /*
      * Existing GPU Debye calculation remains unchanged.
      */
+    const auto gpuBufferStart = Clock::now();
     calculator.prepare_buffers(
         app.atoms,
         table,
         qValues);
-
+    reportStage("GPU buffer preparation", gpuBufferStart);
     std::cout << "positions after prepare = "
               << calculator.get_positions().size()
               << "\n";

@@ -347,9 +347,6 @@ void ScatteringModel::compute_multipoles(
 
     // ------------------------------------------------------------
     // Centre the molecule on its geometric centre.
-    //
-    // The multipole expansion depends on the choice of origin,
-    // so A and C must ultimately use the same origin.
     // ------------------------------------------------------------
 
     double cx = 0.0;
@@ -372,71 +369,84 @@ void ScatteringModel::compute_multipoles(
 
 
     // ------------------------------------------------------------
+    // Precompute spherical harmonics for every atom.
+    // These depend on atom position, not q.
+    // ------------------------------------------------------------
+
+    std::vector<std::vector<std::complex<double>>> atomHarmonics(
+        atoms.size(),
+        std::vector<std::complex<double>>(
+            nCoefficients,
+            {0.0, 0.0}
+        )
+    );
+
+    for (size_t ia = 0; ia < atoms.size(); ++ia)
+    {
+        const auto& atom = atoms[ia];
+
+        const double x = static_cast<double>(atom.x) - cx;
+        const double y = static_cast<double>(atom.y) - cy;
+        const double z = static_cast<double>(atom.z) - cz;
+
+        const double r = std::sqrt(x * x + y * y + z * z);
+
+        double theta = 0.0;
+        double phi = 0.0;
+
+        if (r > 1e-12)
+        {
+            theta = std::acos(
+                std::max(-1.0, std::min(1.0, z / r))
+            );
+
+            phi = std::atan2(y, x);
+        }
+
+        for (int l = 0; l <= L; ++l)
+        {
+            for (int m = -l; m <= l; ++m)
+            {
+                const int index = lm_index(l, m);
+
+                atomHarmonics[ia][index] =
+                    spherical_harmonic(l, m, theta, phi);
+            }
+        }
+    }
+
+
+    // ------------------------------------------------------------
     // q loop
     // ------------------------------------------------------------
 
-    for (size_t iq = 0;
-         iq < qGrid.size();
-         ++iq)
+    for (size_t iq = 0; iq < qGrid.size(); ++iq)
     {
-        const double q =
-            qGrid[iq];
+        const double q = qGrid[iq];
 
-        auto& coefficients =
-            multipoles_[iq];
+        auto& coefficients = multipoles_[iq];
 
 
         // --------------------------------------------------------
         // Atom loop
         // --------------------------------------------------------
 
-        for (const auto& atom : atoms)
+        for (size_t ia = 0; ia < atoms.size(); ++ia)
         {
-            // Coordinates relative to molecular centre
-            const double x =
-                static_cast<double>(atom.x) - cx;
+            const auto& atom = atoms[ia];
 
-            const double y =
-                static_cast<double>(atom.y) - cy;
+            // Coordinates relative to molecular centre.
+            // Still required to calculate q*r.
+            const double x = static_cast<double>(atom.x) - cx;
+            const double y = static_cast<double>(atom.y) - cy;
+            const double z = static_cast<double>(atom.z) - cz;
 
-            const double z =
-                static_cast<double>(atom.z) - cz;
-
-
-            const double r =
-                std::sqrt(
-                    x * x +
-                    y * y +
-                    z * z
-                );
-
-
-            double theta = 0.0;
-            double phi = 0.0;
-
-            if (r > 1e-12)
-            {
-                theta =
-                    std::acos(
-                        std::max(
-                            -1.0,
-                            std::min(
-                                1.0,
-                                z / r
-                            )
-                        )
-                    );
-
-                phi =
-                    std::atan2(y, x);
-            }
+            const double r = std::sqrt(x * x + y * y + z * z);
 
 
             // ----------------------------------------------------
             // Select the same X-ray form factor used elsewhere.
-            //
-            // PEPSI atom type first.
-            // Elemental fallback second.
+            // PEPSI atom type first; elemental fallback second.
             // ----------------------------------------------------
 
             const FormFactor* ff = nullptr;
@@ -444,48 +454,33 @@ void ScatteringModel::compute_multipoles(
             if (!atom.atomType.empty() &&
                 table.contains_atom_type(atom.atomType))
             {
-                ff =
-                    &table.get_atom_type(
-                        atom.atomType
-                    );
+                ff = &table.get_atom_type(atom.atomType);
             }
             else if (table.contains_element(atom.Z))
             {
-                ff =
-                    &table.get_element(atom.Z);
+                ff = &table.get_element(atom.Z);
             }
             else
             {
                 continue;
             }
 
-
-            const double f =
-                ff->evaluate(q);
+            const double f = ff->evaluate(q);
 
 
             // ----------------------------------------------------
             // l loop
             // ----------------------------------------------------
 
-            for (int l = 0;
-                 l <= L;
-                 ++l)
+            for (int l = 0; l <= L; ++l)
             {
                 const double jl =
-                    spherical_bessel_j(
-                        l,
-                        q * r
-                    );
-
+                    spherical_bessel_j(l, q * r);
 
                 // i^l
                 const std::complex<double> phase =
                     std::pow(
-                        std::complex<double>(
-                            0.0,
-                            1.0
-                        ),
+                        std::complex<double>(0.0, 1.0),
                         l
                     );
 
@@ -494,22 +489,12 @@ void ScatteringModel::compute_multipoles(
                 // m loop
                 // ------------------------------------------------
 
-                for (int m = -l;
-                     m <= l;
-                     ++m)
+                for (int m = -l; m <= l; ++m)
                 {
-                    const std::complex<double> Y =
-                        spherical_harmonic(
-                            l,
-                            m,
-                            theta,
-                            phi
-                        );
+                    const int index = lm_index(l, m);
 
-
-                    const int index =
-                        lm_index(l, m);
-
+                    const std::complex<double>& Y =
+                        atomHarmonics[ia][index];
 
                     coefficients[index] +=
                         4.0 * PI *

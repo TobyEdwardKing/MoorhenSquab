@@ -38,6 +38,8 @@ function App() {
 
     const [includeExperimentalData, setIncludeExperimentalData] = useState(true);
     const [fitBackgroundOffset, setFitBackgroundOffset] = useState(false);
+
+    const [debugMode, setDebugMode] = useState(false);
     // ---------------------------------------------------------
     // INITIALISE WASM + GPU
     // ---------------------------------------------------------
@@ -201,14 +203,15 @@ function App() {
 
             console.log("Preparing amplitudes for", qValues.size(), "q values");
 
-            module.prepare_debye_gpu(
-                elementJSON,
-                saxsAtomTypeJSON,
-                residueAtomTypeJSON,
-                structureText,
-                structureFilename,
-                qValues
-            );
+        module.prepare_debye_gpu(
+            elementJSON,
+            saxsAtomTypeJSON,
+            residueAtomTypeJSON,
+            structureText,
+            structureFilename,
+            qValues,
+            debugMode
+        );
 
             const posVec = module.get_positions();
             const amplitudeVec = module.get_amplitudes();
@@ -917,7 +920,7 @@ async function calculateSAXSCurve() {
                     </small>
                 </span>
             </label>
-
+            
             {includeExperimentalData && (
                 <>
                     <input
@@ -968,7 +971,7 @@ async function calculateSAXSCurve() {
                     </label>
                 </>
             )}
-
+            
 
             {gpu && structureText &&
                 (!includeExperimentalData || saxsProfile) && (
@@ -1064,6 +1067,37 @@ async function calculateSAXSCurve() {
                 Test Debye GPU
             </button>
 
+            <label
+                style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "0.5rem",
+                    marginBottom: "1rem"
+                }}
+            >
+                <input
+                    type="checkbox"
+                    checked={debugMode}
+                    disabled={isPreparing}
+                    onChange={(event) => {
+                        setDebugMode(event.target.checked);
+
+                        // Changing debug mode requires fresh preparation.
+                        setIsPrepared(false);
+                        setCalculatedCurve(null);
+                        setFitResult(null);
+                        setBestParameters(null);
+                    }}
+                />
+                <span>
+                    <strong>Debug mode</strong>
+                    <br />
+                    <small>
+                        Run additional C++ diagnostics and validation checks during
+                        model preparation. Disable for normal calculations.
+                    </small>
+                </span>
+            </label>
             {filename && (
                 <div>
                     <h2>{filename}</h2>
@@ -1093,7 +1127,9 @@ async function calculateSAXSCurve() {
                 </div>
             )}
         </div>
+        
     );
+    
 }
 
 export default App;
