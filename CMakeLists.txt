@@ -1,15 +1,21 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(saxs)
+include(FetchContent)
 
+FetchContent_Declare(
+    nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG v3.11.3
+)
+
+FetchContent_MakeAvailable(nlohmann_json)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(gemmi_src ${CMAKE_CURRENT_SOURCE_DIR}/checkout/gemmi)
 
-set(JSON_INCLUDE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../saxs-profile-plugin/build/_deps/nlohmann_json-src/include
-)
+
 
 
 include_directories(
@@ -71,16 +77,14 @@ target_link_libraries(
     saxs
     PRIVATE
     gemmi_cpp
+    nlohmann_json::nlohmann_json
 )
 
 
 target_include_directories(
     saxs PRIVATE
-
     include
     include/webgpu
-
-    ${JSON_INCLUDE}
 )
 
 
