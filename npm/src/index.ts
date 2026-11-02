@@ -17,6 +17,9 @@ export type {
     FitToProfileResult,
 } from "./SquabCalculator.js";
 
+export { SquabWorkerCalculator } from "./SquabWorkerCalculator.js";
+export type { SquabWorkerOptions } from "./SquabWorkerCalculator.js";
+
 export { SquabDebyeGPU, calculateDebyeCurveGPU, isWebGPUAvailable } from "./gpu.js";
 export type { SquabGPUOptions } from "./gpu.js";
 

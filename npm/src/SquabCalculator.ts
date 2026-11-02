@@ -12,9 +12,9 @@ import {
 import type { SAXSCurve, SAXSFitResult } from "./vendor/utils/SAXSScaling.js";
 import type { SAXSProfile } from "./vendor/types/SAXSProfile.js";
 
-/** Defaults used by Toby's frontend (App.tsx). */
-export const DEFAULT_SOLVENT_DENSITY = 0.334;
-export const DEFAULT_SHELL_CONTRAST = 0.0167;
+import { DEFAULT_SHELL_CONTRAST, DEFAULT_SOLVENT_DENSITY, defaultQGrid } from "./defaults.js";
+
+export { DEFAULT_SHELL_CONTRAST, DEFAULT_SOLVENT_DENSITY, defaultQGrid };
 
 export interface SquabTables {
     elementsInfoJson: string;
@@ -79,11 +79,6 @@ export interface FitToProfileResult {
     evaluated: number;
 }
 
-/** Evenly spaced q grid, as used by the frontend when no experimental profile is loaded. */
-export function defaultQGrid(count = 500, qMin = 0.01, qMax = 0.5): number[] {
-    if (count < 2) return [qMin];
-    return Array.from({ length: count }, (_, i) => qMin + (i * (qMax - qMin)) / (count - 1));
-}
 
 function linspace(lo: number, hi: number, n: number): number[] {
     if (n < 2) return [lo];

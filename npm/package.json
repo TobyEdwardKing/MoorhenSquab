@@ -1,7 +1,7 @@
 {
   "name": "moorhen-squab",
-  "version": "0.1.0",
-  "description": "SAXS profile calculation from macromolecular structures (C++/WebAssembly + WebGPU), packaged for use as a Moorhen plugin",
+  "version": "0.3.0",
+  "description": "SAXS profile calculation from macromolecular structures (C++/WebAssembly + WebGPU), with a ready-made Moorhen plugin UI",
   "author": "Toby E King",
   "license": "Apache-2.0",
   "repository": {
@@ -18,6 +18,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
+    },
     "./wasm/saxs.js": {
       "types": "./dist/wasm/saxs.d.ts",
       "import": "./dist/wasm/saxs.js"
@@ -32,13 +36,22 @@
   "sideEffects": false,
   "scripts": {
     "build:wasm": "bash scripts/build-wasm.sh",
-    "build:ts": "node scripts/prepare-sources.mjs && tsc -p tsconfig.json && node scripts/copy-wasm.mjs",
+    "build:ts": "node scripts/prepare-sources.mjs && tsc -p tsconfig.json && node scripts/copy-wasm.mjs && node scripts/build-worker.mjs",
     "build": "npm run build:wasm && npm run build:ts",
     "typecheck": "node scripts/prepare-sources.mjs && tsc -p tsconfig.json --noEmit",
-    "test": "node test/smoke.mjs",
+    "test": "node test/smoke.mjs && node test/worker-smoke.mjs",
     "pack:local": "npm run build:ts && npm test && npm pack"
   },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@types/react": "^18.3.0",
     "@webgpu/types": "^0.1.60",
     "typescript": "^5.9.3"
   },
