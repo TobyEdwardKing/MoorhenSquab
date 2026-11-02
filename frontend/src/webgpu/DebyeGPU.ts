@@ -5,8 +5,8 @@
  * - Upload atomic coordinates
  * - Upload scattering amplitudes
  * - Dispatch compute shader
- * - Reduce partial intensities
- * - Return SAXS intensity curve
+ * - Calculate Debye intensities for batches of q values
+ * - Return the SAXS intensity curve
  */
 
 export class DebyeGPU {
@@ -82,26 +82,7 @@ export class DebyeGPU {
                 }
 
             });
-        const reduceShader =
-            await fetch("/reduce.wgsl")
-                .then(r => r.text());
-
-        const reduceModule =
-            this.device.createShaderModule({
-                code: reduceShader
-            });
-
-        this.reducePipeline =
-            this.device.createComputePipeline({
-
-                layout: "auto",
-
-                compute: {
-                    module: reduceModule,
-                    entryPoint: "main"
-                }
-
-            });
+        
     }
 
     uploadBuffers(
@@ -343,181 +324,6 @@ export class DebyeGPU {
     }
 
     
-
-    async calculate(q: number)
-{
-    const totalStart = performance.now();
-
-
-    // --------------------------------------------------
-    // Update parameters
-    // --------------------------------------------------
-
-    const paramStart = performance.now();
-
-    const buffer =
-        new ArrayBuffer(16);
-
-    const u32 =
-        new Uint32Array(buffer);
-
-    const f32 =
-        new Float32Array(buffer);
-
-    u32[0] =
-        this.atomCount;
-
-    f32[1] =
-        q;
-
-    this.device.queue.writeBuffer(
-        this.paramBuffer,
-        0,
-        buffer
-    );
-
-    const paramEnd = performance.now();
-
-
-    // --------------------------------------------------
-    // Command encoding
-    // --------------------------------------------------
-
-    const encodeStart =
-        performance.now();
-
-    const encoder =
-        this.device.createCommandEncoder();
-
-
-    // Debye calculation
-
-    const pass =
-        encoder.beginComputePass();
-
-    pass.setPipeline(
-        this.pipeline
-    );
-
-    pass.setBindGroup(
-        0,
-        this.bindGroup
-    );
-
-    pass.dispatchWorkgroups(
-        Math.ceil(
-            this.atomCount / 64
-        )
-    );
-
-    pass.end();
-
-
-    // Reduction
-
-    const reducePass =
-        encoder.beginComputePass();
-
-    reducePass.setPipeline(
-        this.reducePipeline
-    );
-
-    reducePass.setBindGroup(
-        0,
-        this.reduceBindGroup
-    );
-
-    reducePass.dispatchWorkgroups(1);
-
-    reducePass.end();
-
-
-    // Copy result to readback buffer
-
-    encoder.copyBufferToBuffer(
-        this.reduceBuffer,
-        0,
-        this.readBuffer,
-        0,
-        4
-    );
-
-
-    const commandBuffer =
-        encoder.finish();
-
-    const encodeEnd =
-        performance.now();
-
-
-    // --------------------------------------------------
-    // Submit
-    // --------------------------------------------------
-
-    const submitStart =
-        performance.now();
-
-    this.device.queue.submit([
-        commandBuffer
-    ]);
-
-    const submitEnd =
-        performance.now();
-
-
-    // --------------------------------------------------
-    // Wait for GPU + map result
-    // --------------------------------------------------
-
-    const mapStart =
-        performance.now();
-
-    await this.readBuffer.mapAsync(
-        GPUMapMode.READ
-    );
-
-    const mapEnd =
-        performance.now();
-
-
-    // --------------------------------------------------
-    // Read result
-    // --------------------------------------------------
-
-    const readStart =
-        performance.now();
-
-    const result =
-        new Float32Array(
-            this.readBuffer.getMappedRange()
-        );
-
-    const intensity =
-        result[0];
-
-    this.readBuffer.unmap();
-
-    const readEnd =
-        performance.now();
-
-
-    const totalEnd =
-        performance.now();
-
-
-    console.log(
-        `[GPU q=${q.toFixed(4)}] ` +
-        `params=${(paramEnd - paramStart).toFixed(2)}ms ` +
-        `encode=${(encodeEnd - encodeStart).toFixed(2)}ms ` +
-        `submit=${(submitEnd - submitStart).toFixed(2)}ms ` +
-        `GPU/wait=${(mapEnd - mapStart).toFixed(2)}ms ` +
-        `read=${(readEnd - readStart).toFixed(2)}ms ` +
-        `TOTAL=${(totalEnd - totalStart).toFixed(2)}ms`
-    );
-
-
-    return intensity;
-}
 
 async calculateCurve(
     qValues: Float32Array,

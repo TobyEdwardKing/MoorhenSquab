@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(saxs)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -90,16 +94,21 @@ target_include_directories(
 
 target_compile_options(
     saxs PRIVATE
-
     -O3
     --bind
+    -fexceptions
 )
 
+target_compile_options(
+    gemmi_cpp PRIVATE
+    -fexceptions
+)
 
 target_link_options(
     saxs PRIVATE
 
     -O3
+    -fexceptions
     -lembind
 
     -sMODULARIZE=1
@@ -108,6 +117,5 @@ target_link_options(
     -sALLOW_MEMORY_GROWTH=1
     -sEXPORT_NAME=createSaxsModule
     -sASSERTIONS=2
-    -sNO_DISABLE_EXCEPTION_CATCHING
 )
 
