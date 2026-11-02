@@ -34,7 +34,7 @@ source ~/emsdk/emsdk_env.sh
 npm install          # typescript + @webgpu/types (dev only)
 npm run build        # WASM (build-wasm/ → wasm/) then TypeScript (→ dist/)
 npm test             # 1orc.cif vs. native reference + fit round-trip
-npm pack             # → moorhen-squab-0.3.0.tgz
+npm pack             # → moorhen-squab-0.3.1.tgz
 ```
 
 After a C++ change: `npm run build`. After a TS-only change: `npm run build:ts`.
@@ -46,7 +46,7 @@ Separate `.wasm` file instead of embedded: `npm run build:wasm -- -DSQUAB_SINGLE
 
 ```bash
 cd ~/MoorhenWebComponentServer
-npm install ../MoorhenSquab/npm/moorhen-squab-0.3.0.tgz
+npm install ../MoorhenSquab/npm/moorhen-squab-0.3.1.tgz
 ```
 
 Install the packed tarball rather than `file:../MoorhenSquab/npm`: a folder
@@ -134,7 +134,9 @@ It finds the enclosing `<moorhen-web-component>`, waits for its instance, then:
   with progress and a **Cancel** button in the panel and a Moorhen snackbar
   ("SAXS: fitting … 40%", then done/failed) that shows even when the panel is closed.
 
-The UI covers calculating curves for every loaded molecule (mmCIF from
+The UI lists the loaded molecules (`instance.getMoleculeList()`, kept current via
+the store subscription) with a checkbox each; new molecules start ticked. It covers
+calculating curves for the ticked molecules (mmCIF from
 `molecule.getAtoms("mmcif")`, i.e. `molecules_container_t`), loading a q / I(q) / σ
 profile, the grid-search fit, a log I(q) plot, a results table and CSV export.
 Because it is rendered by the host page's React and only projected into Moorhen's

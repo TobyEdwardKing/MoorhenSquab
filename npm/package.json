@@ -1,6 +1,6 @@
 {
   "name": "moorhen-squab",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "SAXS profile calculation from macromolecular structures (C++/WebAssembly + WebGPU), with a ready-made Moorhen plugin UI",
   "author": "Toby E King",
   "license": "Apache-2.0",
