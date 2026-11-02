@@ -436,6 +436,9 @@ std::vector<HydrationPoint> HydrationShell::generate(
     }
 
     const double outerDistance = INNER_DISTANCE + shellThickness;
+    const int searchRadius = static_cast<int>(
+        std::ceil(outerDistance / gridSpacing));
+
     for (std::size_t ix = 0; ix < nx; ++ix) {
         const double x = minX + (static_cast<double>(ix) + 0.5) * gridSpacing;
         for (std::size_t iy = 0; iy < ny; ++iy) {
@@ -447,9 +450,9 @@ std::vector<HydrationPoint> HydrationShell::generate(
                 const int cellZ = static_cast<int>(iz);
 
                 double minDistanceSquared = std::numeric_limits<double>::infinity();
-                for (int dxCell = -1; dxCell <= 1; ++dxCell) {
-                    for (int dyCell = -1; dyCell <= 1; ++dyCell) {
-                        for (int dzCell = -1; dzCell <= 1; ++dzCell) {
+                for (int dxCell = -searchRadius; dxCell <= searchRadius; ++dxCell) {
+                    for (int dyCell = -searchRadius; dyCell <= searchRadius; ++dyCell) {
+                        for (int dzCell = -searchRadius; dzCell <= searchRadius; ++dzCell) {
                             const auto found = atomsByCell.find(
                                 {cellX + dxCell, cellY + dyCell, cellZ + dzCell});
                             if (found == atomsByCell.end())
@@ -729,9 +732,6 @@ void HydrationShell::compute_multipoles(
     }
     }
     
-    // CrabSAXS / Pepsi-SAXS united-group approximation for water.
-    const double fO = table.get_element(7).evaluate(0.0);
-    const double fH = table.get_element(0).evaluate(0.0);
 
     // Store the water form factor at every requested q value.
     const auto& oxygen = table.get_element(7);
@@ -762,13 +762,15 @@ void HydrationShell::compute_multipoles(
                 << '\n';
         }
     }
-    std::cout << "Hydration-shell multipoles calculated with q interpolation:\n"
-              << "  Shell points: " << nPoints << "\n"
-              << "  Requested q points: " << qGrid.size() << "\n"
-              << "  Sampled q points: " << sampleCount << "\n"
-              << "  L: " << L << "\n"
-              << "  Coefficients per q: " << coefficientCount << "\n"
-              << "  Centre: (" << cx << ", " << cy << ", " << cz << ")\n";
+        std::cout
+            << "Hydration-shell multipoles calculated "
+            << (useInterpolation ? "with q interpolation:\n" : "directly:\n")
+            << "  Shell points: " << nPoints << "\n"
+            << "  Requested q points: " << qGrid.size() << "\n"
+            << "  Sampled q points: " << sampleCount << "\n"
+            << "  L: " << L << "\n"
+            << "  Coefficients per q: " << coefficientCount << "\n"
+            << "  Centre: (" << cx << ", " << cy << ", " << cz << ")\n";
 }
 
 void HydrationShell::validate_interpolation(
