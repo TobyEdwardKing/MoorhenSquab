@@ -285,10 +285,10 @@ void ScatteringModel::compute_amplitudes(
                     atom.atomType
                 );
         }
-        else if (table.contains_element(atom.Z))
+        else if (table.contains_element(atom.element))
         {
             ff =
-                &table.get_element(atom.Z);
+                &table.get_element(atom.element);
         }
         else
         {
@@ -544,9 +544,10 @@ void ScatteringModel::compute_multipoles(
             {
                 ff = &table.get_atom_type(atom.atomType);
             }
-            else if (table.contains_element(atom.Z))
+            else if (table.contains_element(atom.element))
             {
-                ff = &table.get_element(atom.Z);
+                ff =
+                    &table.get_element(atom.element);
             }
             else
             {

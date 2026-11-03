@@ -11,7 +11,7 @@ struct AtomData
     float y;
     float z;
 
-    uint32_t Z;
+    std::string element;  // N, C, O, S, etc. Z;
     std::string residueName;    // ARG
     std::string atomName;       // NH1
     std::string atomType;       // N-H+

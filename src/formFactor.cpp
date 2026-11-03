@@ -38,39 +38,18 @@ bool FormFactorTable::load_element_table(
 
     element_table_.clear();
 
-    // reserve enough space for Z=1..118
-    element_table_.resize(118);
-
-
     for (auto& [element, value] : j.items())
     {
-        for (size_t i = 0; i < value.size(); i++)
-        {
-            if (value[i].is_null())
-            {
-                std::cerr
-                    << "NULL value found for element "
-                    << element
-                    << " index "
-                    << i
-                    << std::endl;
-
-                continue;
-            }
-        }
         if (value.size() != 15)
         {
             std::cerr
                 << "Skipping invalid entry: "
                 << element
                 << std::endl;
-
             continue;
         }
 
-
         FormFactor ff;
-
 
         // a1-a5
         for (int i = 0; i < 5; i++)
@@ -81,68 +60,52 @@ bool FormFactorTable::load_element_table(
                 : 0.0;
         }
 
-
         // c
         ff.c =
-            value[5].get<double>();
-
+            value[5].is_number()
+            ? value[5].get<double>()
+            : 0.0;
 
         // b1-b5
         for (int i = 0; i < 5; i++)
         {
             ff.b[i] =
-                value[6+i].is_number()
-                ? value[6+i].get<double>()
+                value[6 + i].is_number()
+                ? value[6 + i].get<double>()
                 : 0.0;
         }
 
         ff.coherent_scattering_length =
             value[11].is_number()
-                ? value[11].get<double>()
-                : 0.0;
-
+            ? value[11].get<double>()
+            : 0.0;
 
         ff.atomic_number =
             value[12].is_number()
-                ? value[12].get<int>()
-                : 0;
-
+            ? value[12].get<int>()
+            : 0;
 
         ff.atomic_radius =
             value[13].is_number()
-                ? value[13].get<double>()
-                : 0.0;
-        // Elemental excluded-volume parameters.
-        //
+            ? value[13].get<double>()
+            : 0.0;
 
-        ff.excl_radius =
-            ff.atomic_radius;
+        ff.excl_radius = ff.atomic_radius;
 
         ff.excl_volume =
             value[14].is_number()
             ? value[14].get<double>()
             : 0.0;
 
-
-        // IMPORTANT:
-        //  vector index is Z-1
-        int index =
-            ff.atomic_number - 1;
-
-
-        if (index >= 0)
-        {
-            element_table_[index] = ff;
-        }
+        // Store using the JSON element symbol, e.g. "O", "H", "C".
+        element_table_[element] = ff;
     }
-
 
     std::cout
         << "Loaded "
         << element_table_.size()
-        << " form factor entries."
+        << " elemental form factor entries."
         << std::endl;
-
 
     return true;
 }
@@ -150,25 +113,26 @@ bool FormFactorTable::load_element_table(
 
 
 bool FormFactorTable::contains_element(
-    uint32_t index) const
+    const std::string& element) const
 {
-    return index < element_table_.size()
-        && element_table_[index].atomic_number != 0;
+    return element_table_.find(element)
+        != element_table_.end();
 }
 
 
 
 const FormFactor& FormFactorTable::get_element(
-    uint32_t index) const
+    const std::string& element) const
 {
-    if (!contains_element(index))
-        {
+    auto it = element_table_.find(element);
+
+    if (it == element_table_.end())
+    {
         throw std::runtime_error(
-            "Missing form factor index");
+            "Missing elemental form factor: " + element);
     }
 
-
-    return element_table_[index];
+    return it->second;
 }
 
 
@@ -184,7 +148,7 @@ size_t FormFactorTable::number_of_atom_types() const
 }
 
 std::string FormFactorTable::test_lookup(
-    const std::vector<uint32_t>& atomicNumbers
+    const std::vector<std::string>& elements
 ) const
 {
     std::ostringstream out;
@@ -194,47 +158,29 @@ std::string FormFactorTable::test_lookup(
 
     int count = 0;
 
-    for (uint32_t atomicNumber : atomicNumbers)
+    for (const std::string& element : elements)
     {
         if (count >= 10)
             break;
 
+        out << "Atom " << count << "\n";
 
-        uint32_t index =
-            atomicNumber - 1;
-
-
-        out << "Atom "
-            << count
+        out << "  Element: "
+            << element
             << "\n";
 
-
-        out << "  Atomic number: "
-            << atomicNumber
-            << "\n";
-
-
-        out << "  JSON index: "
-            << index
-            << "\n";
-
-
-        if (!contains_element(index))
-            {
+        if (!contains_element(element))
+        {
             out << "  ERROR: no form factor found\n\n";
             count++;
             continue;
         }
 
+        const auto& ff = get_element(element);
 
-        const auto& ff =
-            get_element(index);
-
-
-        out << "  Stored Z: "
+        out << "  Atomic number: "
             << ff.atomic_number
             << "\n";
-
 
         out << "  f(0): "
             << std::fixed
@@ -242,15 +188,12 @@ std::string FormFactorTable::test_lookup(
             << ff.evaluate(0.0)
             << "\n";
 
-
         out << "  Radius: "
             << ff.atomic_radius
             << "\n\n";
 
-
         count++;
     }
-
 
     return out.str();
 }

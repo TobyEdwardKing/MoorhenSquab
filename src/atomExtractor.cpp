@@ -117,8 +117,8 @@ static void extract_structure(
                 if (!includeHydrogens && atomicNumber == 1)
                     continue;
 
-                const uint32_t zIndex =
-                    static_cast<uint32_t>(atomicNumber - 1);
+                const std::string element =
+                    atom.element.name();
 
                 std::string atomType;
 
@@ -142,7 +142,7 @@ static void extract_structure(
                     static_cast<float>(atom.pos.x),
                     static_cast<float>(atom.pos.y),
                     static_cast<float>(atom.pos.z),
-                    zIndex,
+                    element,
                     residueName,
                     atomName,
                     atomType
@@ -284,7 +284,7 @@ std::string atom_summary_from_string(
 
         out
             << i
-            << "  Z=" << a.Z + 1
+            << "  Element=" << a.element
             << "  ("
             << a.x << ", "
             << a.y << ", "

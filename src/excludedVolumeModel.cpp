@@ -461,9 +461,9 @@ void ExcludedVolumeModel::compute_coefficients(
                 ++debugAtomTypeCount;
             }
         }
-        else if (table.contains_element(atom.Z))
-        {
-            ff = &table.get_element(atom.Z);
+        else if (table.contains_element(atom.element))
+            {
+                ff = &table.get_element(atom.element);
 
             static int debugElementCount = 0;
 
@@ -472,8 +472,8 @@ void ExcludedVolumeModel::compute_coefficients(
                 std::cout
                     << "Using elemental fallback for "
                     << atom.atomName
-                    << " (Z index "
-                    << atom.Z
+                    << " (element "
+                    << atom.element
                     << ") excl_volume = "
                     << ff->excl_volume
                     << "\n";
