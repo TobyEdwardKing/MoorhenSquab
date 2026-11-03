@@ -307,6 +307,7 @@ double ExcludedVolumeModel::dummy_form_factor(
 }
 
 
+
 /*
  * Calculate excluded-volume multipole coefficients C_lm(q).
  */
@@ -331,6 +332,62 @@ void ExcludedVolumeModel::compute_coefficients(
 
     const double G =
         1.0 + 3.0 * radiusAdjustmentFraction;
+
+
+    // ------------------------------------------------------------
+    // Calculate all spherical Bessel orders into an existing buffer.
+    // ------------------------------------------------------------
+
+    const auto sphericalBesselAll =
+        [](int maxL, double x, std::vector<double>& result)
+    {
+        const double ax = std::abs(x);
+
+        if (ax < 1.0e-12)
+        {
+            std::fill(result.begin(), result.end(), 0.0);
+            result[0] = 1.0;
+            return;
+        }
+
+        // Retain the existing power-series implementation for small x.
+        if (ax < 1.0)
+        {
+            for (int l = 0; l <= maxL; ++l)
+                result[l] = spherical_bessel_j(l, x);
+
+            return;
+        }
+
+        const int nmax = maxL + 40;
+
+        double jp1 = 0.0;
+        double jn = 1.0;
+        double j0down = 0.0;
+
+        for (int n = nmax; n >= 1; --n)
+        {
+            const double jm1 =
+                (static_cast<double>(2 * n + 1) / x) * jn - jp1;
+
+            jp1 = jn;
+            jn = jm1;
+
+            const int order = n - 1;
+
+            if (order <= maxL)
+                result[order] = jm1;
+
+            if (order == 0)
+                j0down = jm1;
+        }
+
+        const double j0 = std::sin(x) / x;
+        const double normalisation = j0 / j0down;
+
+        for (int l = 0; l <= maxL; ++l)
+            result[l] *= normalisation;
+    };
 
 
     // ------------------------------------------------------------
@@ -367,9 +424,6 @@ void ExcludedVolumeModel::compute_coefficients(
 
     // ------------------------------------------------------------
     // Precompute atom-specific data.
-    //
-    // Coordinates, radial distances, spherical harmonics
-    // and excluded volumes do not depend on q.
     // ------------------------------------------------------------
 
     struct AtomExcludedVolumeData
@@ -386,7 +440,6 @@ void ExcludedVolumeModel::compute_coefficients(
 
     for (const auto& atom : atoms)
     {
-        // Select excluded-volume parameters.
         const FormFactor* ff = nullptr;
 
         if (!atom.atomType.empty() &&
@@ -524,18 +577,51 @@ void ExcludedVolumeModel::compute_coefficients(
 
 
     // ------------------------------------------------------------
+    // Precompute i^l phase factors.
+    // ------------------------------------------------------------
+
+    std::vector<std::complex<double>> phases(L_ + 1);
+
+    for (int l = 0; l <= L_; ++l)
+    {
+        switch (l % 4)
+        {
+            case 0:
+                phases[l] = {1.0, 0.0};
+                break;
+
+            case 1:
+                phases[l] = {0.0, 1.0};
+                break;
+
+            case 2:
+                phases[l] = {-1.0, 0.0};
+                break;
+
+            case 3:
+                phases[l] = {0.0, -1.0};
+                break;
+        }
+    }
+
+
+    // ------------------------------------------------------------
+    // Allocate the Bessel buffer once.
+    // Reuse it for every atom/q pair.
+    // ------------------------------------------------------------
+
+    std::vector<double> bessel(L_ + 1, 0.0);
+
+
+    // ------------------------------------------------------------
     // Main calculation.
-    //
-    // C_lm(q) =
-    //
-    // 4 pi i^l sum_i [
-    //     g_i(q) j_l(q r_i) Y_lm*(theta_i,phi_i)
-    // ]
     // ------------------------------------------------------------
 
     for (size_t iq = 0; iq < qGrid.size(); ++iq)
     {
         const double q = qGrid[iq];
+
+        auto& coefficients = coefficients_[iq];
 
         for (const auto& atom : atomData)
         {
@@ -546,41 +632,25 @@ void ExcludedVolumeModel::compute_coefficients(
                 );
 
 
+            // Calculate all Bessel orders together.
+            sphericalBesselAll(
+                L_,
+                q * atom.r,
+                bessel
+            );
+
+
             for (int l = 0; l <= L_; ++l)
             {
-                const double jl =
-                    spherical_bessel_j(
-                        l,
-                        q * atom.r
-                    );
+                const double jl = bessel[l];
 
-
-                // i^l
-                std::complex<double> iPower;
-
-                switch (l % 4)
-                {
-                    case 0:
-                        iPower = {1.0, 0.0};
-                        break;
-
-                    case 1:
-                        iPower = {0.0, 1.0};
-                        break;
-
-                    case 2:
-                        iPower = {-1.0, 0.0};
-                        break;
-
-                    default:
-                        iPower = {0.0, -1.0};
-                        break;
-                }
+                const std::complex<double>& phase =
+                    phases[l];
 
                 const std::complex<double> prefactor =
                     4.0 *
                     PI *
-                    iPower *
+                    phase *
                     g *
                     jl;
 
@@ -593,11 +663,8 @@ void ExcludedVolumeModel::compute_coefficients(
                     const std::complex<double>& Y =
                         atom.harmonics[index];
 
-                    const auto contribution =
+                    coefficients[index] +=
                         prefactor * std::conj(Y);
-
-                    coefficients_[iq][index] +=
-                        contribution;
                 }
             }
         }
@@ -626,9 +693,6 @@ void ExcludedVolumeModel::compute_coefficients(
 
     // ------------------------------------------------------------
     // Diagnostic: q = 0 excluded-volume normalisation.
-    //
-    // Expected:
-    // C_00(0) = sqrt(4*pi) * sum_i V_i
     // ------------------------------------------------------------
 
     constexpr double Q_ZERO_TOLERANCE = 1.0e-12;
@@ -649,9 +713,7 @@ void ExcludedVolumeModel::compute_coefficients(
         double totalVolume = 0.0;
 
         for (const auto& atom : atomData)
-        {
             totalVolume += atom.volume;
-        }
 
         const double expectedC00 =
             std::sqrt(4.0 * PI) * totalVolume;
@@ -689,6 +751,7 @@ void ExcludedVolumeModel::compute_coefficients(
             << "the supplied q grid does not contain q=0.\n";
     }
 }
+
 
 
 /*

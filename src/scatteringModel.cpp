@@ -322,6 +322,7 @@ ScatteringModel::shell_scatterers() const
 // Atomic multipoles A_lm(q)
 // ============================================================================
 
+
 void ScatteringModel::compute_multipoles(
     const std::vector<AtomData>& atoms,
     const FormFactorTable& table,
@@ -343,6 +344,59 @@ void ScatteringModel::compute_multipoles(
             std::complex<double>(0.0, 0.0)
         );
     }
+
+    // Calculate all spherical Bessel orders into an existing buffer.
+    // The buffer is allocated once and reused for every atom/q pair.
+    const auto sphericalBesselAll =
+        [](int maxL, double x, std::vector<double>& result)
+    {
+        const double ax = std::abs(x);
+
+        if (ax < 1.0e-12)
+        {
+            std::fill(result.begin(), result.end(), 0.0);
+            result[0] = 1.0;
+            return;
+        }
+
+        // Retain the existing power-series implementation for small x.
+        if (ax < 1.0)
+        {
+            for (int l = 0; l <= maxL; ++l)
+                result[l] = spherical_bessel_j(l, x);
+
+            return;
+        }
+
+        const int nmax = maxL + 40;
+
+        double jp1 = 0.0;
+        double jn = 1.0;
+        double j0down = 0.0;
+
+        for (int n = nmax; n >= 1; --n)
+        {
+            const double jm1 =
+                (static_cast<double>(2 * n + 1) / x) * jn - jp1;
+
+            jp1 = jn;
+            jn = jm1;
+
+            const int order = n - 1;
+
+            if (order <= maxL)
+                result[order] = jm1;
+
+            if (order == 0)
+                j0down = jm1;
+        }
+
+        const double j0 = std::sin(x) / x;
+        const double normalisation = j0 / j0down;
+
+        for (int l = 0; l <= maxL; ++l)
+            result[l] *= normalisation;
+    };
 
 
     // ------------------------------------------------------------
@@ -417,6 +471,40 @@ void ScatteringModel::compute_multipoles(
 
 
     // ------------------------------------------------------------
+    // Allocate the Bessel buffer once.
+    // It is reused for every atom and q-value.
+    // ------------------------------------------------------------
+
+    std::vector<double> bessel(L + 1, 0.0);
+
+    // Precompute i^l for every angular order.
+    // The values repeat in a cycle of four:
+    // 1, i, -1, -i.
+    std::vector<std::complex<double>> phases(L + 1);
+
+    for (int l = 0; l <= L; ++l)
+    {
+        switch (l % 4)
+        {
+            case 0:
+                phases[l] = {1.0, 0.0};
+                break;
+
+            case 1:
+                phases[l] = {0.0, 1.0};
+                break;
+
+            case 2:
+                phases[l] = {-1.0, 0.0};
+                break;
+
+            case 3:
+                phases[l] = {0.0, -1.0};
+                break;
+        }
+    }
+
+    // ------------------------------------------------------------
     // q loop
     // ------------------------------------------------------------
 
@@ -435,8 +523,6 @@ void ScatteringModel::compute_multipoles(
         {
             const auto& atom = atoms[ia];
 
-            // Coordinates relative to molecular centre.
-            // Still required to calculate q*r.
             const double x = static_cast<double>(atom.x) - cx;
             const double y = static_cast<double>(atom.y) - cy;
             const double z = static_cast<double>(atom.z) - cz;
@@ -445,8 +531,7 @@ void ScatteringModel::compute_multipoles(
 
 
             // ----------------------------------------------------
-            // Select the same X-ray form factor used elsewhere.
-            // PEPSI atom type first; elemental fallback second.
+            // Select form factor.
             // ----------------------------------------------------
 
             const FormFactor* ff = nullptr;
@@ -469,20 +554,22 @@ void ScatteringModel::compute_multipoles(
 
 
             // ----------------------------------------------------
+            // Calculate all spherical Bessel orders into the
+            // existing buffer.
+            // ----------------------------------------------------
+
+            sphericalBesselAll(L, q * r, bessel);
+
+
+            // ----------------------------------------------------
             // l loop
             // ----------------------------------------------------
 
             for (int l = 0; l <= L; ++l)
             {
-                const double jl =
-                    spherical_bessel_j(l, q * r);
+                const double jl = bessel[l];
 
-                // i^l
-                const std::complex<double> phase =
-                    std::pow(
-                        std::complex<double>(0.0, 1.0),
-                        l
-                    );
+                const std::complex<double>& phase = phases[l];
 
 
                 // ------------------------------------------------
@@ -527,6 +614,7 @@ void ScatteringModel::compute_multipoles(
         << cy << ", "
         << cz << ")\n";
 }
+
 
 
 // ============================================================================
