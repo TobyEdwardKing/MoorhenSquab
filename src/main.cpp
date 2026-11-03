@@ -24,6 +24,86 @@ ScatteringModel scatteringModel;
 ExcludedVolumeModel excludedVolumeModel;
 HydrationShell hydrationShell;
 std::vector<HydrationPoint> hydrationPoints;
+struct HydrationCombinedTerms
+{
+    double atomicPower = 0.0;
+    double excludedPower = 0.0;
+    double hydrationPower = 0.0;
+
+    double atomicExcludedCross = 0.0;
+    double atomicHydrationCross = 0.0;
+    double excludedHydrationCross = 0.0;
+};
+
+std::vector<HydrationCombinedTerms> hydrationCombinedTerms;
+double preparedSolventDensity = 0.0;
+bool hydrationCombinedTermsPrepared = false;
+
+
+void prepare_hydration_combined_multipole_terms(double solventDensity)
+{
+    if (!std::isfinite(solventDensity))
+        throw std::runtime_error("Solvent density must be finite");
+
+    const auto& atomic = scatteringModel.multipoles();
+    const auto& excluded = excludedVolumeModel.coefficients();
+    const auto& hydration = hydrationShell.coefficients();
+
+    if (atomic.empty() ||
+        excluded.size() != atomic.size() ||
+        hydration.size() != atomic.size())
+    {
+        throw std::runtime_error(
+            "Atomic, excluded-volume and hydration q-grid sizes do not match"
+        );
+    }
+
+    constexpr double WATER_FORM_FACTOR_AT_ZERO = 10.0;
+
+    hydrationCombinedTerms.clear();
+    hydrationCombinedTerms.reserve(atomic.size());
+
+    for (std::size_t qIndex = 0; qIndex < atomic.size(); ++qIndex)
+    {
+        const auto& atomicRow = atomic[qIndex];
+        const auto& excludedRow = excluded[qIndex];
+        const auto& hydrationRow = hydration[qIndex];
+
+        if (atomicRow.size() != excludedRow.size() ||
+            atomicRow.size() != hydrationRow.size())
+        {
+            throw std::runtime_error(
+                "Atomic, excluded-volume and hydration multipole counts do not match"
+            );
+        }
+
+        const double waterShape =
+            hydrationShell.water_form_factor(qIndex) /
+            WATER_FORM_FACTOR_AT_ZERO;
+
+        HydrationCombinedTerms terms;
+
+        for (std::size_t lm = 0; lm < atomicRow.size(); ++lm)
+        {
+            const std::complex<double> A = atomicRow[lm];
+            const std::complex<double> C = excludedRow[lm];
+            const std::complex<double> B = waterShape * hydrationRow[lm];
+
+            terms.atomicPower += std::norm(A);
+            terms.excludedPower += std::norm(C);
+            terms.hydrationPower += std::norm(B);
+
+            terms.atomicExcludedCross += std::real(A * std::conj(C));
+            terms.atomicHydrationCross += std::real(A * std::conj(B));
+            terms.excludedHydrationCross += std::real(C * std::conj(B));
+        }
+
+        hydrationCombinedTerms.push_back(terms);
+    }
+
+    preparedSolventDensity = solventDensity;
+    hydrationCombinedTermsPrepared = true;
+}
 
 std::vector<float> get_combined_multipole_intensities(
     double solventDensity
@@ -88,7 +168,6 @@ std::vector<float> get_hydration_combined_multipole_intensities(
     double radiusAdjustmentFraction
 )
 {
-    // PEPSI's standard search range for delta-r / r_m.
     if (!std::isfinite(radiusAdjustmentFraction) ||
         radiusAdjustmentFraction < -0.05 ||
         radiusAdjustmentFraction > 0.05)
@@ -106,106 +185,36 @@ std::vector<float> get_hydration_combined_multipole_intensities(
         );
     }
 
-    const auto& atomic = scatteringModel.multipoles();
-    const auto& excluded = excludedVolumeModel.coefficients();
-    const auto& hydration = hydrationShell.coefficients();
-
-    if (atomic.empty()) {
-        throw std::runtime_error(
-            "Atomic multipoles have not been calculated"
-        );
-    }
-
-    if (excluded.size() != atomic.size() ||
-        hydration.size() != atomic.size())
+    if (!hydrationCombinedTermsPrepared ||
+        solventDensity != preparedSolventDensity)
     {
         throw std::runtime_error(
-            "Atomic, excluded-volume and hydration q-grid sizes do not match"
+            "Hydration combined terms have not been prepared for this solvent density"
         );
     }
-
-    /*
-     * PEPSI's simplified, q-independent first-order radius correction.
-     *
-     * C_lm(q) is calculated once using the reference dummy-atom
-     * form factors. Apply the first-order correction to the
-     * excluded-volume amplitude here, once.
-     */
-    const double G = 1.0 + 3.0 * radiusAdjustmentFraction;
 
     constexpr double FOUR_PI = 4.0 * 3.14159265358979323846;
 
-    /*
-     * Water molecular form factor at q=0, in electron units:
-     * oxygen contributes 8 electrons and the two hydrogens
-     * contribute 1 electron each.
-     *
-     * HydrationShell::compute_multipoles() already includes the
-     * represented grid-cell volume in B_lm(q). Therefore, do not
-     * multiply B_lm(q) by grid_spacing()^3 again here.
-     *
-     * Normalising f_water(q) by f_water(0) gives a dimensionless
-     * molecular form-factor shape. shellContrast is then applied
-     * exactly once to the volume-weighted shell coefficients.
-     */
-    constexpr double WATER_FORM_FACTOR_AT_ZERO = 10.0;
+    const double G = 1.0 + 3.0 * radiusAdjustmentFraction;
+    const double rho = solventDensity;
+    const double shell = shellContrast;
 
     std::vector<float> intensities;
-    intensities.reserve(atomic.size());
+    intensities.reserve(hydrationCombinedTerms.size());
 
-    for (std::size_t qIndex = 0; qIndex < atomic.size(); ++qIndex)
+    for (const auto& terms : hydrationCombinedTerms)
     {
-        const auto& atomicRow = atomic[qIndex];
-        const auto& excludedRow = excluded[qIndex];
-        const auto& hydrationRow = hydration[qIndex];
+        const double intensity =
+            terms.atomicPower
+            + rho * rho * G * G * terms.excludedPower
+            + shell * shell * terms.hydrationPower
+            - 2.0 * rho * G * terms.atomicExcludedCross
+            + 2.0 * shell * terms.atomicHydrationCross
+            - 2.0 * rho * G * shell * terms.excludedHydrationCross;
 
-        if (atomicRow.size() != excludedRow.size() ||
-            atomicRow.size() != hydrationRow.size())
-        {
-            throw std::runtime_error(
-                "Atomic, excluded-volume and hydration multipole counts do not match"
-            );
-        }
-
-        /*
-         * Dimensionless water form-factor shape at this q.
-         * At q=0, this ratio must equal 1.
-         */
-        const double waterFormFactorShape =
-            hydrationShell.water_form_factor(qIndex) /
-            WATER_FORM_FACTOR_AT_ZERO;
-
-        double intensity = 0.0;
-
-        for (std::size_t lm = 0; lm < atomicRow.size(); ++lm)
-        {
-            /*
-             * Total amplitude:
-             *
-             * A_lm(q) - rho * G * C_lm(q)
-             *          + delta_rho * [f_water(q)/f_water(0)] * B_lm(q)
-             *
-             * B_lm already contains the shell grid-cell volume.
-             * No additional grid-volume or bulk-density multiplier
-             * belongs in this expression under this convention.
-             */
-            const std::complex<double> base =
-                atomicRow[lm]
-                - solventDensity * G * excludedRow[lm];
-
-            const std::complex<double> hydrationContribution =
-                shellContrast *
-                waterFormFactorShape *
-                hydrationRow[lm];
-
-            const std::complex<double> total =
-                base + hydrationContribution;
-
-            intensity += std::norm(total);
-        }
-
-        intensity /= FOUR_PI;
-        intensities.push_back(static_cast<float>(intensity));
+        intensities.push_back(
+            static_cast<float>(intensity / FOUR_PI)
+        );
     }
 
     return intensities;
@@ -803,7 +812,10 @@ EMSCRIPTEN_BINDINGS(saxs)
         "get_hydration_combined_multipole_intensities",
         &get_hydration_combined_multipole_intensities
     );
-
+    emscripten::function(
+        "prepare_hydration_combined_multipole_terms",
+        &prepare_hydration_combined_multipole_terms
+    );
     emscripten::function(
         "get_multipole_L",
         &get_multipole_L

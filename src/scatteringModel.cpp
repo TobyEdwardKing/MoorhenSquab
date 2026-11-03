@@ -6,7 +6,7 @@
 #include <iostream>
 #include <algorithm>
 #include <stdexcept>
-
+#include <chrono>
 namespace
 {
     constexpr double PI = 3.14159265358979323846;
@@ -336,7 +336,8 @@ void ScatteringModel::compute_multipoles(
 
     multipoles_.clear();
     multipoles_.resize(qGrid.size());
-
+    double besselTimeMs = 0.0;
+    double coefficientLoopTimeMs = 0.0;
     for (auto& coefficients : multipoles_)
     {
         coefficients.resize(
@@ -344,6 +345,8 @@ void ScatteringModel::compute_multipoles(
             std::complex<double>(0.0, 0.0)
         );
     }
+    // using Clock = std::chrono::steady_clock;
+
 
     // Calculate all spherical Bessel orders into an existing buffer.
     // The buffer is allocated once and reused for every atom/q pair.
@@ -558,12 +561,17 @@ void ScatteringModel::compute_multipoles(
             // existing buffer.
             // ----------------------------------------------------
 
-            sphericalBesselAll(L, q * r, bessel);
+            // auto besselStart = Clock::now();
 
+            sphericalBesselAll(L, q * r, bessel);
+            // besselTimeMs += std::chrono::duration<double, std::milli>(
+            //     Clock::now() - besselStart
+            // ).count();
 
             // ----------------------------------------------------
             // l loop
             // ----------------------------------------------------
+            // auto coefficientStart = Clock::now();
 
             for (int l = 0; l <= L; ++l)
             {
@@ -591,6 +599,9 @@ void ScatteringModel::compute_multipoles(
                         std::conj(Y);
                 }
             }
+            // coefficientLoopTimeMs += std::chrono::duration<double, std::milli>(
+            //     Clock::now() - coefficientStart
+            // ).count();
         }
     }
 
@@ -613,6 +624,11 @@ void ScatteringModel::compute_multipoles(
         << cx << ", "
         << cy << ", "
         << cz << ")\n";
+        // std::cout << "[Timing] Atomic Bessel calculations: "
+        // << besselTimeMs << " ms\n";
+
+        // std::cout << "[Timing] Atomic coefficient loops: "
+        // << coefficientLoopTimeMs << " ms\n";
 }
 
 
