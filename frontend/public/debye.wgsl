@@ -2,6 +2,7 @@ struct Params {
     atomCount : u32,
     qCount : u32,
     qOffset : u32,
+    iTileCount : u32,
 };
 
 @group(0) @binding(0)
@@ -51,228 +52,111 @@ fn main(
     localId : vec3<u32>
 )
 {
-    let qIndex =
-        workgroupId.x;
+    let qIndex = workgroupId.x;
+    let iTile = workgroupId.y;
+    let localIndex = localId.x;
 
-    let localIndex =
-        localId.x;
-
-
-    if (qIndex >= params.qCount) {
+    if (qIndex >= params.qCount || iTile >= params.iTileCount) {
         return;
     }
 
+    let q = qValues[qIndex];
 
-    let q =
-        qValues[qIndex];
-
-
-    // ------------------------------------------------------------
     // Amplitudes for this q are stored contiguously.
-    //
-    // amplitudes[
-    //     qIndex * atomCount + atomIndex
-    // ]
-    // ------------------------------------------------------------
+    let amplitudeOffset = qIndex * params.atomCount;
 
-    let globalQIndex =
-        params.qOffset + qIndex;
+    // This workgroup handles one block of 64 i atoms.
+    let i = iTile * 64u + localIndex;
 
-    let amplitudeOffset =
-        globalQIndex * params.atomCount;
+    var xi : f32 = 0.0;
+    var yi : f32 = 0.0;
+    var zi : f32 = 0.0;
+    var fi : f32 = 0.0;
 
+    if (i < params.atomCount) {
+        let ix = i * 3u;
+
+        xi = positions[ix];
+        yi = positions[ix + 1u];
+        zi = positions[ix + 2u];
+
+        fi = amplitudes[amplitudeOffset + i];
+    }
 
     var total : f32 = 0.0;
 
+    let jTileCount = (params.atomCount + 63u) / 64u;
 
-    let tileCount =
-        (params.atomCount + 63u) / 64u;
-
-
-    // ------------------------------------------------------------
-    // Loop over i tiles.
-    // ------------------------------------------------------------
-
+    // Loop over all j tiles.
     for (
-        var iTile : u32 = 0u;
-        iTile < tileCount;
-        iTile++
+        var jTile : u32 = 0u;
+        jTile < jTileCount;
+        jTile++
     ) {
+        let j = jTile * 64u + localIndex;
 
-        let i =
-            iTile * 64u + localIndex;
+        // Load j atoms into shared memory.
+        if (j < params.atomCount) {
+            let jx = j * 3u;
 
+            tileX[localIndex] = positions[jx];
+            tileY[localIndex] = positions[jx + 1u];
+            tileZ[localIndex] = positions[jx + 2u];
 
-        var xi : f32 = 0.0;
-        var yi : f32 = 0.0;
-        var zi : f32 = 0.0;
-        var fi : f32 = 0.0;
-
-
-        if (i < params.atomCount) {
-
-            let ix =
-                i * 3u;
-
-            xi =
-                positions[ix];
-
-            yi =
-                positions[ix + 1u];
-
-            zi =
-                positions[ix + 2u];
-
-
-            // q-dependent amplitude
-            fi =
-                amplitudes[
-                    amplitudeOffset + i
-                ];
-        }
-
-
-        // --------------------------------------------------------
-        // Loop over j tiles.
-        // --------------------------------------------------------
-
-        for (
-            var jTile : u32 = 0u;
-            jTile < tileCount;
-            jTile++
-        ) {
-
-            let j =
-                jTile * 64u + localIndex;
-
-
-            // ----------------------------------------------------
-            // Load j atom into shared memory.
-            // ----------------------------------------------------
-
-            if (j < params.atomCount) {
-
-                let jx =
-                    j * 3u;
-
-                tileX[localIndex] =
-                    positions[jx];
-
-                tileY[localIndex] =
-                    positions[jx + 1u];
-
-                tileZ[localIndex] =
-                    positions[jx + 2u];
-
-
-                // q-dependent amplitude
-                tileF[localIndex] =
-                    amplitudes[
-                        amplitudeOffset + j
-                    ];
-
-            } else {
-
-                tileX[localIndex] =
-                    0.0;
-
-                tileY[localIndex] =
-                    0.0;
-
-                tileZ[localIndex] =
-                    0.0;
-
-                tileF[localIndex] =
-                    0.0;
-            }
-
-
-            workgroupBarrier();
-
-
-            // ----------------------------------------------------
-            // Calculate this i against all j in the tile.
-            // ----------------------------------------------------
-
-            for (
-                var k : u32 = 0u;
-                k < 64u;
-                k++
-            ) {
-
-                let jIndex =
-                    jTile * 64u + k;
-
-
-                if (jIndex < params.atomCount) {
-
-                    let dx =
-                        xi - tileX[k];
-
-                    let dy =
-                        yi - tileY[k];
-
-                    let dz =
-                        zi - tileZ[k];
-
-
-                    let r =
-                        sqrt(
-                            dx * dx +
-                            dy * dy +
-                            dz * dz
-                        );
-
-
-                    let qr =
-                        q * r;
-
-
-                    total +=
-                        fi *
-                        tileF[k] *
-                        sinc(qr);
-                }
-            }
-
-
-            workgroupBarrier();
-        }
-    }
-
-
-    // ------------------------------------------------------------
-    // Reduce the 64 i contributions.
-    // ------------------------------------------------------------
-
-    partial[localIndex] =
-        total;
-
-    workgroupBarrier();
-
-
-    var stride : u32 = 32u;
-
-    while (stride > 0u) {
-
-        if (localIndex < stride) {
-
-            partial[localIndex] +=
-                partial[
-                    localIndex + stride
-                ];
+            tileF[localIndex] = amplitudes[amplitudeOffset + j];
+        } else {
+            tileX[localIndex] = 0.0;
+            tileY[localIndex] = 0.0;
+            tileZ[localIndex] = 0.0;
+            tileF[localIndex] = 0.0;
         }
 
         workgroupBarrier();
 
-        stride =
-            stride / 2u;
+        // Calculate this i atom against all j atoms in the tile.
+        for (var k : u32 = 0u; k < 64u; k++) {
+            let jIndex = jTile * 64u + k;
+
+            if (i < params.atomCount && jIndex < params.atomCount) {
+                let dx = xi - tileX[k];
+                let dy = yi - tileY[k];
+                let dz = zi - tileZ[k];
+
+                let r = sqrt(
+                    dx * dx +
+                    dy * dy +
+                    dz * dz
+                );
+
+                let qr = q * r;
+
+                total += fi * tileF[k] * sinc(qr);
+            }
+        }
+
+        workgroupBarrier();
     }
 
+    // Reduce the 64 i contributions within this block.
+    partial[localIndex] = total;
 
+    workgroupBarrier();
+
+    var stride : u32 = 32u;
+
+    while (stride > 0u) {
+        if (localIndex < stride) {
+            partial[localIndex] += partial[localIndex + stride];
+        }
+
+        workgroupBarrier();
+
+        stride = stride / 2u;
+    }
+
+    // Each workgroup writes its own partial result.
     if (localIndex == 0u) {
-
-        output[qIndex] =
-            partial[0];
+        let outputIndex = qIndex * params.iTileCount + iTile;
+        output[outputIndex] = partial[0];
     }
 }
