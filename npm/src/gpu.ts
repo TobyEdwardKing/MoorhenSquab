@@ -15,7 +15,7 @@ export function isWebGPUAvailable(): boolean {
 }
 
 /**
- * Toby's DebyeGPU with the WGSL shaders bundled, instead of fetched from
+ * Moorhen Squab's DebyeGPU with the WGSL shaders bundled, instead of fetched from
  * "/debye.wgsl" and "/reduce.wgsl" on the host page.
  */
 export class SquabDebyeGPU extends DebyeGPU {
@@ -45,7 +45,7 @@ export class SquabDebyeGPU extends DebyeGPU {
 
 /**
  * Atom–atom Debye curve on the GPU for the structure currently prepared in
- * `calculator` (Toby's "GPU Debye reference"; no solvent terms yet).
+ * `calculator` (Moorhen Squab's "GPU Debye reference"; no solvent terms yet).
  */
 export async function calculateDebyeCurveGPU(
     calculator: SquabCalculator,

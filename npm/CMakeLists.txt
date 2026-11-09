@@ -1,6 +1,6 @@
 # Emscripten build of MoorhenSquab's C++ core for the moorhen-squab NPM package.
 #
-# Reuses Toby's sources in ../src and ../include unchanged. Differences from
+# Reuses Moorhen Squab's sources in ../src and ../include unchanged. Differences from
 # the top-level CMakeLists.txt (which builds the standalone Vite frontend):
 #   * gemmi and nlohmann_json are found or fetched, no sibling-checkout paths
 #   * ENVIRONMENT=web,worker so the module can also run inside a Web Worker

@@ -1,21 +1,21 @@
 # moorhen-squab (NPM packaging of MoorhenSquab)
 
-This folder turns Toby King's MoorhenSquab SAXS calculator into an ES-module
+This folder turns the MoorhenSquab SAXS calculator into an ES-module
 NPM package that a Moorhen plugin (e.g. MoorhenWebComponentServer) can import.
 
 Nothing outside `npm/` is modified. The C++ in `../src` + `../include`, the
 TypeScript helpers in `../src/utils`, `../src/types`, `../frontend/src/webgpu`,
 and the tables/shaders in `../frontend/public` are all taken as they are at
-build time, so the package always reflects Toby's current code.
+build time, so the package always reflects MoorhenSquab's current code.
 
 ## What's in the package
 
 | Export | What it is |
 | --- | --- |
 | `SquabCalculator` | One WASM instance of the C++ core. `prepare(mmcif)` → `calculateCurve()` / `fitToProfile(profile)` |
-| `SquabDebyeGPU`, `calculateDebyeCurveGPU` | Toby's WebGPU Debye path with the WGSL shaders bundled |
+| `SquabDebyeGPU`, `calculateDebyeCurveGPU` | WebGPU Debye path with the WGSL shaders bundled |
 | `parseSAXSProfileText`, `parseSAXSProfile` | q / I(q) / σ profile parsing (ATSAS q-unit heuristic) |
-| `fitSAXSScale`, `fitSAXSScaleWithOffset`, `compareSAXSProfiles`, `calculateDebyeReference` | Toby's fitting / reference helpers |
+| `fitSAXSScale`, `fitSAXSScaleWithOffset`, `compareSAXSProfiles`, `calculateDebyeReference` | Fitting / reference helpers |
 | `createSaxsModule` | The raw Emscripten factory, if you want the bindings directly |
 
 The WASM is embedded in `dist/wasm/saxs.js` (`-sSINGLE_FILE`), and the JSON
@@ -78,7 +78,7 @@ const best = await calc.fitToProfile(profile, { onProgress: f => console.log(f) 
 `prepare` accepts PDB text too: pass `{ filename: "model.pdb" }` (the
 extension picks the parser; anything not `.pdb`/`.ent` is read as mmCIF).
 
-C++ stdout (Toby's diagnostics) is captured rather than printed; read
+C++ stdout (Moorhen Squab's diagnostics) is captured rather than printed; read
 `calc.log`, or pass `{ verbose: true }` to `create`. Errors thrown in C++
 come back as JS `Error`s with the exception text and the last log lines.
 
@@ -151,7 +151,7 @@ types in `src/react/moorhenTypes.ts`.
 
 ## Things worth knowing
 
-* `prepare()` runs Toby's full pipeline in `main.cpp`, including his
+* `prepare()` runs Moorhen Squab's full pipeline in `main.cpp`, including his
   validation diagnostics (interpolation checks, several shell contrasts).
   That's extra work on every prepare; a lean entry point is an easy later win.
 * `SquabCalculator` itself is synchronous and runs on the calling thread; use

@@ -1,4 +1,4 @@
-// Copies Toby's TypeScript helpers and data tables into npm/src so tsc can
+// Copies Moorhen Squab's TypeScript helpers and data tables into npm/src so tsc can
 // compile them into the package. The originals stay the single source of
 // truth; everything written here is generated and gitignored.
 //

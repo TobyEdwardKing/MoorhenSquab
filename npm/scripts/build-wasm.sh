@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build Toby's C++ core to npm/wasm/saxs.js (+ saxs.wasm if SINGLE_FILE is off).
+# Build Moorhen Squab's C++ core to npm/wasm/saxs.js (+ saxs.wasm if SINGLE_FILE is off).
 # Needs an activated emsdk:   source ~/emsdk/emsdk_env.sh
 # Extra arguments go to CMake, e.g.   npm run build:wasm -- -DSQUAB_DEBUG=ON
 set -euo pipefail

@@ -1,6 +1,6 @@
 // Extra Embind entry points compiled into the npm build only.
 //
-// They wrap Toby's functions from src/main.cpp in try/catch so a C++
+// They wrap Moorhen Squab's functions from src/main.cpp in try/catch so a C++
 // exception comes back to JavaScript as plain text. (Emscripten 6 no longer
 // exports getExceptionMessage via -sEXPORT_EXCEPTION_HANDLING_HELPERS, so
 // without this a thrown std::runtime_error reaches JS as an opaque object.)

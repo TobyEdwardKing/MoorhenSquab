@@ -60,7 +60,7 @@ export interface FitOptions {
     /** Fit a constant background as well as the scale (fitSAXSScaleWithOffset). */
     fitBackgroundOffset?: boolean;
     solventDensity?: number;
-    /** Grid points per parameter. Toby's app uses 100 (10,000 evaluations). */
+    /** Grid points per parameter. Moorhen Squab uses 100 (10,000 evaluations). */
     gridSize?: number;
     radiusAdjustmentRange?: [number, number];
     shellContrastRange?: [number, number];
@@ -88,7 +88,7 @@ function linspace(lo: number, hi: number, n: number): number[] {
 const yieldToEventLoop = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 /**
- * One Emscripten instance of Toby's SAXS core.
+ * One Emscripten instance of Moorhen Squab's SAXS core.
  *
  * The C++ side keeps a single prepared structure in globals, so a calculator
  * holds one structure at a time; create several calculators for several
@@ -183,7 +183,7 @@ export class SquabCalculator {
         return this.prepared;
     }
 
-    /** Production curve: atomic + excluded volume + hydration shell (Toby's `hydrationCurve`). */
+    /** Production curve: atomic + excluded volume + hydration shell (Moorhen Squab's `hydrationCurve`). */
     calculateCurve(params: HydrationParameters = {}): SAXSCurve {
         const state = this.requirePrepared();
         const m = this.module;
@@ -227,7 +227,7 @@ export class SquabCalculator {
     }
 
     /**
-     * Toby's two-parameter grid search (radius adjustment × shell contrast),
+     * Moorhen Squab's two-parameter grid search (radius adjustment × shell contrast),
      * scoring each candidate by reduced χ² against the experimental profile.
      * The calculator must have been prepared on the profile's own q grid.
      */
@@ -311,7 +311,7 @@ export class SquabCalculator {
 
     /**
      * Prefer the squab_* binding (C++ exceptions caught, text in squab_last_error);
-     * fall back to Toby's original binding for modules built without them.
+     * fall back to Moorhen Squab's original binding for modules built without them.
      */
     private safeCall<T>(safe: (() => T) | null, unsafe: () => T, discard?: (result: T) => void): T {
         const lastError = this.module.squab_last_error;
