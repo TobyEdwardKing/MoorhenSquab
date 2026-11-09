@@ -38,6 +38,8 @@ function App() {
 
     const [includeExperimentalData, setIncludeExperimentalData] = useState(true);
     const [fitBackgroundOffset, setFitBackgroundOffset] = useState(false);
+
+    const [debugMode, setDebugMode] = useState(false);
     // ---------------------------------------------------------
     // INITIALISE WASM + GPU
     // ---------------------------------------------------------
@@ -201,14 +203,15 @@ function App() {
 
             console.log("Preparing amplitudes for", qValues.size(), "q values");
 
-            module.prepare_debye_gpu(
-                elementJSON,
-                saxsAtomTypeJSON,
-                residueAtomTypeJSON,
-                structureText,
-                structureFilename,
-                qValues
-            );
+        module.prepare_debye_gpu(
+            elementJSON,
+            saxsAtomTypeJSON,
+            residueAtomTypeJSON,
+            structureText,
+            structureFilename,
+            qValues,
+            debugMode
+        );
 
             const posVec = module.get_positions();
             const amplitudeVec = module.get_amplitudes();
@@ -450,6 +453,8 @@ async function calculateSAXSCurve() {
         const atomicVector =
             module.get_multipole_intensities(MULTIPOLE_L);
 
+        module.prepare_hydration_combined_multipole_terms(SOLVENT_DENSITY);
+
         const combinedZeroVector =
             module.get_combined_multipole_intensities(0.0);
 
@@ -628,7 +633,7 @@ async function calculateSAXSCurve() {
             // -------------------------------------------------
             // 7. GRID SEARCH: RADIUS ADJUSTMENT + SHELL CONTRAST
             // -------------------------------------------------
-
+            const gridSearchStart = performance.now();
             const GRID_SIZE = 100;
 
             const radiusAdjustmentValues = Array.from(
@@ -643,13 +648,17 @@ async function calculateSAXSCurve() {
 
             let bestReducedChiSquared = Infinity;
             let evaluatedPairs = 0;
+            let wasmCalculationMs = 0;
+            let vectorCopyMs = 0;
+            let curveCreationMs = 0;
+            let fittingMs = 0;
+            let vectorCleanupMs = 0;
 
             let bestHydrationCurve: SAXSCurve | null = null;
             let bestHydrationFit: SAXSFitResult | null = null;
 
             let bestRadiusAdjustmentFraction = 0;
             let bestShellContrast = 0;
-
             console.log("========== TWO-PARAMETER GRID SEARCH ==========");
             console.log("Radius candidates:", radiusAdjustmentValues.length);
             console.log("Contrast candidates:", shellContrastValues.length);
@@ -658,9 +667,12 @@ async function calculateSAXSCurve() {
                 radiusAdjustmentValues.length * shellContrastValues.length
             );
             console.log("Background offset fitting:", fitBackgroundOffset);
-
             for (const radiusAdjustmentFraction of radiusAdjustmentValues) {
                 for (const shellContrast of shellContrastValues) {
+
+                    // 1. Calculate candidate intensities in WASM.
+                    const wasmStart = performance.now();
+
                     const candidateVector =
                         module.get_hydration_combined_multipole_intensities(
                             SOLVENT_DENSITY,
@@ -668,11 +680,18 @@ async function calculateSAXSCurve() {
                             radiusAdjustmentFraction
                         );
 
+                    wasmCalculationMs += performance.now() - wasmStart;
+
                     try {
+                        // 2. Copy the WASM vector into a JavaScript array.
+                        const copyStart = performance.now();
+
                         const intensities = Array.from(
                             { length: candidateVector.size() },
                             (_, i) => candidateVector.get(i)
                         );
+
+                        vectorCopyMs += performance.now() - copyStart;
 
                         if (intensities.length !== expectedLength) {
                             throw new Error(
@@ -681,12 +700,22 @@ async function calculateSAXSCurve() {
                             );
                         }
 
+                        // 3. Construct the candidate curve.
+                        const curveStart = performance.now();
+
                         const candidateCurve: SAXSCurve = {
                             qValues: [...activeQValues],
                             intensities
                         };
 
+                        curveCreationMs += performance.now() - curveStart;
+
+                        // 4. Fit the candidate to the experimental data.
+                        const fittingStart = performance.now();
+
                         const candidateFit = fitCurve(candidateCurve);
+
+                        fittingMs += performance.now() - fittingStart;
 
                         evaluatedPairs++;
 
@@ -706,10 +735,15 @@ async function calculateSAXSCurve() {
                             bestHydrationFit = candidateFit;
                         }
                     } finally {
+                        // 5. Release the WASM vector.
+                        const cleanupStart = performance.now();
+
                         candidateVector.delete();
-                    }
-                }
+
+                        vectorCleanupMs += performance.now() - cleanupStart;
             }
+    }
+}
 
             if (!bestHydrationCurve || !bestHydrationFit) {
                 throw new Error(
@@ -728,7 +762,27 @@ async function calculateSAXSCurve() {
                 radiusAdjustmentFraction: bestRadiusAdjustmentFraction,
                 shellContrast: bestShellContrast
             });
+            const gridSearchElapsedMs = performance.now() - gridSearchStart;
+            console.log("========== GRID SEARCH TIMING BREAKDOWN ==========");
+            console.log(`[Timing] WASM intensity calculation: ${wasmCalculationMs.toFixed(2)} ms`);
+            console.log(`[Timing] WASM-to-JS vector copy:      ${vectorCopyMs.toFixed(2)} ms`);
+            console.log(`[Timing] Candidate curve creation:   ${curveCreationMs.toFixed(2)} ms`);
+            console.log(`[Timing] Curve fitting:               ${fittingMs.toFixed(2)} ms`);
+            console.log(`[Timing] WASM vector cleanup:         ${vectorCleanupMs.toFixed(2)} ms`);
 
+            console.log(
+                `[Timing] Accounted stage total:       ${(wasmCalculationMs + vectorCopyMs + curveCreationMs + fittingMs + vectorCleanupMs).toFixed(2)} ms`
+            );
+            console.log(
+                `[Timing] Unaccounted time:             ${(gridSearchElapsedMs - wasmCalculationMs - vectorCopyMs - curveCreationMs - fittingMs - vectorCleanupMs).toFixed(2)} ms`
+            );
+            console.log("===================================================");
+            console.log(
+                `[Timing] Two-parameter grid search: ${gridSearchElapsedMs.toFixed(2)} ms`
+            );
+            console.log(
+                `[Timing] Average per candidate: ${(gridSearchElapsedMs / 10000).toFixed(4)} ms`
+            );
             console.log("========== GRID SEARCH COMPLETE ==========");
             console.log("Evaluated parameter pairs:", evaluatedPairs);
             console.log(
@@ -917,7 +971,7 @@ async function calculateSAXSCurve() {
                     </small>
                 </span>
             </label>
-
+            
             {includeExperimentalData && (
                 <>
                     <input
@@ -968,7 +1022,7 @@ async function calculateSAXSCurve() {
                     </label>
                 </>
             )}
-
+            
 
             {gpu && structureText &&
                 (!includeExperimentalData || saxsProfile) && (
@@ -1064,6 +1118,37 @@ async function calculateSAXSCurve() {
                 Test Debye GPU
             </button>
 
+            <label
+                style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "0.5rem",
+                    marginBottom: "1rem"
+                }}
+            >
+                <input
+                    type="checkbox"
+                    checked={debugMode}
+                    disabled={isPreparing}
+                    onChange={(event) => {
+                        setDebugMode(event.target.checked);
+
+                        // Changing debug mode requires fresh preparation.
+                        setIsPrepared(false);
+                        setCalculatedCurve(null);
+                        setFitResult(null);
+                        setBestParameters(null);
+                    }}
+                />
+                <span>
+                    <strong>Debug mode</strong>
+                    <br />
+                    <small>
+                        Run additional C++ diagnostics and validation checks during
+                        model preparation. Disable for normal calculations.
+                    </small>
+                </span>
+            </label>
             {filename && (
                 <div>
                     <h2>{filename}</h2>
@@ -1093,7 +1178,9 @@ async function calculateSAXSCurve() {
                 </div>
             )}
         </div>
+        
     );
+    
 }
 
 export default App;

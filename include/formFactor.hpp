@@ -47,10 +47,10 @@ public:
     //
 
     bool contains_element(
-        uint32_t atomicNumber) const;
+        const std::string& element) const;
 
     const FormFactor& get_element(
-        uint32_t atomicNumber) const;
+        const std::string& element) const;
 
 
     //
@@ -73,12 +73,12 @@ public:
     size_t number_of_atom_types() const;
 
     std::string test_lookup(
-        const std::vector<uint32_t>& atomicNumbers) const;
+        const std::vector<std::string>& elements) const;
 
 private:
 
-    // Indexed by atomic number - 1
-    std::vector<FormFactor> element_table_;
+    // Indexed by element symbol (e.g. "H", "C", "N", "S")
+    std::unordered_map<std::string, FormFactor> element_table_;
 
     // Indexed by PEPSI atom type string
     std::unordered_map<std::string, FormFactor> atomtype_table_;

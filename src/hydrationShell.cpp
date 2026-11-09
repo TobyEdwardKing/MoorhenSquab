@@ -734,9 +734,8 @@ void HydrationShell::compute_multipoles(
     
 
     // Store the water form factor at every requested q value.
-    const auto& oxygen = table.get_element(7);
-    const auto& hydrogen = table.get_element(0);
-
+    const auto& oxygen = table.get_element("O");
+    const auto& hydrogen = table.get_element("H");
     waterFormFactors_.resize(qGrid.size());
 
     constexpr double OH_DISTANCE = 0.9572;

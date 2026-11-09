@@ -6,7 +6,7 @@
 #include <iostream>
 #include <algorithm>
 #include <stdexcept>
-
+#include <chrono>
 namespace
 {
     constexpr double PI = 3.14159265358979323846;
@@ -285,10 +285,10 @@ void ScatteringModel::compute_amplitudes(
                     atom.atomType
                 );
         }
-        else if (table.contains_element(atom.Z))
+        else if (table.contains_element(atom.element))
         {
             ff =
-                &table.get_element(atom.Z);
+                &table.get_element(atom.element);
         }
         else
         {
@@ -322,6 +322,7 @@ ScatteringModel::shell_scatterers() const
 // Atomic multipoles A_lm(q)
 // ============================================================================
 
+
 void ScatteringModel::compute_multipoles(
     const std::vector<AtomData>& atoms,
     const FormFactorTable& table,
@@ -335,7 +336,8 @@ void ScatteringModel::compute_multipoles(
 
     multipoles_.clear();
     multipoles_.resize(qGrid.size());
-
+    double besselTimeMs = 0.0;
+    double coefficientLoopTimeMs = 0.0;
     for (auto& coefficients : multipoles_)
     {
         coefficients.resize(
@@ -343,13 +345,65 @@ void ScatteringModel::compute_multipoles(
             std::complex<double>(0.0, 0.0)
         );
     }
+    // using Clock = std::chrono::steady_clock;
+
+
+    // Calculate all spherical Bessel orders into an existing buffer.
+    // The buffer is allocated once and reused for every atom/q pair.
+    const auto sphericalBesselAll =
+        [](int maxL, double x, std::vector<double>& result)
+    {
+        const double ax = std::abs(x);
+
+        if (ax < 1.0e-12)
+        {
+            std::fill(result.begin(), result.end(), 0.0);
+            result[0] = 1.0;
+            return;
+        }
+
+        // Retain the existing power-series implementation for small x.
+        if (ax < 1.0)
+        {
+            for (int l = 0; l <= maxL; ++l)
+                result[l] = spherical_bessel_j(l, x);
+
+            return;
+        }
+
+        const int nmax = maxL + 40;
+
+        double jp1 = 0.0;
+        double jn = 1.0;
+        double j0down = 0.0;
+
+        for (int n = nmax; n >= 1; --n)
+        {
+            const double jm1 =
+                (static_cast<double>(2 * n + 1) / x) * jn - jp1;
+
+            jp1 = jn;
+            jn = jm1;
+
+            const int order = n - 1;
+
+            if (order <= maxL)
+                result[order] = jm1;
+
+            if (order == 0)
+                j0down = jm1;
+        }
+
+        const double j0 = std::sin(x) / x;
+        const double normalisation = j0 / j0down;
+
+        for (int l = 0; l <= maxL; ++l)
+            result[l] *= normalisation;
+    };
 
 
     // ------------------------------------------------------------
     // Centre the molecule on its geometric centre.
-    //
-    // The multipole expansion depends on the choice of origin,
-    // so A and C must ultimately use the same origin.
     // ------------------------------------------------------------
 
     double cx = 0.0;
@@ -372,71 +426,115 @@ void ScatteringModel::compute_multipoles(
 
 
     // ------------------------------------------------------------
+    // Precompute spherical harmonics for every atom.
+    // These depend on atom position, not q.
+    // ------------------------------------------------------------
+
+    std::vector<std::vector<std::complex<double>>> atomHarmonics(
+        atoms.size(),
+        std::vector<std::complex<double>>(
+            nCoefficients,
+            {0.0, 0.0}
+        )
+    );
+
+    for (size_t ia = 0; ia < atoms.size(); ++ia)
+    {
+        const auto& atom = atoms[ia];
+
+        const double x = static_cast<double>(atom.x) - cx;
+        const double y = static_cast<double>(atom.y) - cy;
+        const double z = static_cast<double>(atom.z) - cz;
+
+        const double r = std::sqrt(x * x + y * y + z * z);
+
+        double theta = 0.0;
+        double phi = 0.0;
+
+        if (r > 1e-12)
+        {
+            theta = std::acos(
+                std::max(-1.0, std::min(1.0, z / r))
+            );
+
+            phi = std::atan2(y, x);
+        }
+
+        for (int l = 0; l <= L; ++l)
+        {
+            for (int m = -l; m <= l; ++m)
+            {
+                const int index = lm_index(l, m);
+
+                atomHarmonics[ia][index] =
+                    spherical_harmonic(l, m, theta, phi);
+            }
+        }
+    }
+
+
+    // ------------------------------------------------------------
+    // Allocate the Bessel buffer once.
+    // It is reused for every atom and q-value.
+    // ------------------------------------------------------------
+
+    std::vector<double> bessel(L + 1, 0.0);
+
+    // Precompute i^l for every angular order.
+    // The values repeat in a cycle of four:
+    // 1, i, -1, -i.
+    std::vector<std::complex<double>> phases(L + 1);
+
+    for (int l = 0; l <= L; ++l)
+    {
+        switch (l % 4)
+        {
+            case 0:
+                phases[l] = {1.0, 0.0};
+                break;
+
+            case 1:
+                phases[l] = {0.0, 1.0};
+                break;
+
+            case 2:
+                phases[l] = {-1.0, 0.0};
+                break;
+
+            case 3:
+                phases[l] = {0.0, -1.0};
+                break;
+        }
+    }
+
+    // ------------------------------------------------------------
     // q loop
     // ------------------------------------------------------------
 
-    for (size_t iq = 0;
-         iq < qGrid.size();
-         ++iq)
+    for (size_t iq = 0; iq < qGrid.size(); ++iq)
     {
-        const double q =
-            qGrid[iq];
+        const double q = qGrid[iq];
 
-        auto& coefficients =
-            multipoles_[iq];
+        auto& coefficients = multipoles_[iq];
 
 
         // --------------------------------------------------------
         // Atom loop
         // --------------------------------------------------------
 
-        for (const auto& atom : atoms)
+        for (size_t ia = 0; ia < atoms.size(); ++ia)
         {
-            // Coordinates relative to molecular centre
-            const double x =
-                static_cast<double>(atom.x) - cx;
+            const auto& atom = atoms[ia];
 
-            const double y =
-                static_cast<double>(atom.y) - cy;
+            const double x = static_cast<double>(atom.x) - cx;
+            const double y = static_cast<double>(atom.y) - cy;
+            const double z = static_cast<double>(atom.z) - cz;
 
-            const double z =
-                static_cast<double>(atom.z) - cz;
-
-
-            const double r =
-                std::sqrt(
-                    x * x +
-                    y * y +
-                    z * z
-                );
-
-
-            double theta = 0.0;
-            double phi = 0.0;
-
-            if (r > 1e-12)
-            {
-                theta =
-                    std::acos(
-                        std::max(
-                            -1.0,
-                            std::min(
-                                1.0,
-                                z / r
-                            )
-                        )
-                    );
-
-                phi =
-                    std::atan2(y, x);
-            }
+            const double r = std::sqrt(x * x + y * y + z * z);
 
 
             // ----------------------------------------------------
-            // Select the same X-ray form factor used elsewhere.
-            //
-            // PEPSI atom type first.
-            // Elemental fallback second.
+            // Select form factor.
             // ----------------------------------------------------
 
             const FormFactor* ff = nullptr;
@@ -444,72 +542,55 @@ void ScatteringModel::compute_multipoles(
             if (!atom.atomType.empty() &&
                 table.contains_atom_type(atom.atomType))
             {
-                ff =
-                    &table.get_atom_type(
-                        atom.atomType
-                    );
+                ff = &table.get_atom_type(atom.atomType);
             }
-            else if (table.contains_element(atom.Z))
+            else if (table.contains_element(atom.element))
             {
                 ff =
-                    &table.get_element(atom.Z);
+                    &table.get_element(atom.element);
             }
             else
             {
                 continue;
             }
 
+            const double f = ff->evaluate(q);
 
-            const double f =
-                ff->evaluate(q);
 
+            // ----------------------------------------------------
+            // Calculate all spherical Bessel orders into the
+            // existing buffer.
+            // ----------------------------------------------------
+
+            // auto besselStart = Clock::now();
+
+            sphericalBesselAll(L, q * r, bessel);
+            // besselTimeMs += std::chrono::duration<double, std::milli>(
+            //     Clock::now() - besselStart
+            // ).count();
 
             // ----------------------------------------------------
             // l loop
             // ----------------------------------------------------
+            // auto coefficientStart = Clock::now();
 
-            for (int l = 0;
-                 l <= L;
-                 ++l)
+            for (int l = 0; l <= L; ++l)
             {
-                const double jl =
-                    spherical_bessel_j(
-                        l,
-                        q * r
-                    );
+                const double jl = bessel[l];
 
-
-                // i^l
-                const std::complex<double> phase =
-                    std::pow(
-                        std::complex<double>(
-                            0.0,
-                            1.0
-                        ),
-                        l
-                    );
+                const std::complex<double>& phase = phases[l];
 
 
                 // ------------------------------------------------
                 // m loop
                 // ------------------------------------------------
 
-                for (int m = -l;
-                     m <= l;
-                     ++m)
+                for (int m = -l; m <= l; ++m)
                 {
-                    const std::complex<double> Y =
-                        spherical_harmonic(
-                            l,
-                            m,
-                            theta,
-                            phi
-                        );
+                    const int index = lm_index(l, m);
 
-
-                    const int index =
-                        lm_index(l, m);
-
+                    const std::complex<double>& Y =
+                        atomHarmonics[ia][index];
 
                     coefficients[index] +=
                         4.0 * PI *
@@ -519,6 +600,9 @@ void ScatteringModel::compute_multipoles(
                         std::conj(Y);
                 }
             }
+            // coefficientLoopTimeMs += std::chrono::duration<double, std::milli>(
+            //     Clock::now() - coefficientStart
+            // ).count();
         }
     }
 
@@ -541,7 +625,13 @@ void ScatteringModel::compute_multipoles(
         << cx << ", "
         << cy << ", "
         << cz << ")\n";
+        // std::cout << "[Timing] Atomic Bessel calculations: "
+        // << besselTimeMs << " ms\n";
+
+        // std::cout << "[Timing] Atomic coefficient loops: "
+        // << coefficientLoopTimeMs << " ms\n";
 }
+
 
 
 // ============================================================================
